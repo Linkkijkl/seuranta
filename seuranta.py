@@ -7,3 +7,6 @@ with sqlite3.connect('seuranta.db') as conn:
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT UNIQUE
     )""")
+
+    cur.execute("INSERT OR IGNORE INTO person VALUES (?, ?)", (None, "45spoons"))
+    conn.commit()
