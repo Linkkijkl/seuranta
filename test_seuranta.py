@@ -18,5 +18,12 @@ class TestSeurantaDb(unittest.TestCase):
         self.assertListEqual(['45spoons'], self.seurdb.people)
 
 
+    def test_add_people_increment_id(self):
+        names = ['45spoons', 'ikaros02']
+        self.seurdb.add_people(names)
+        id_list = list(self.seurdb.name_to_person_id(name) for name in names)
+        self.assertEqual([1, 2], id_list)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
