@@ -3,9 +3,8 @@ import unittest
 from seuranta import SeurantaDb
 
 class TestSeurantaDb(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.seurdb = SeurantaDb(":memory:")
+    def setUp(self):
+        self.seurdb = SeurantaDb(":memory:")
 
 
     def test_tables_exist(self):
