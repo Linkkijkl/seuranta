@@ -13,11 +13,6 @@ class TestSeurantaDb(unittest.TestCase):
         self.assertEqual(expect, self.seurdb.tables)
 
 
-class TestSeurantaDbPeople(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.seurdb = SeurantaDb(":memory:")
-
     def test_add_people(self):
         self.assertListEqual([], self.seurdb.people)
         self.seurdb.add_people(['45spoons'])
