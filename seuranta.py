@@ -20,6 +20,13 @@ class SeurantaDb(sqlite3.Connection):
 
 
     @property
+    def devices(self) -> list[str]:
+        cur = self.cursor()
+        cur.execute("SELECT mac_address FROM device")
+        return list(mac_address for (mac_address,) in cur.fetchall())
+
+
+    @property
     def people(self) -> list[str]:
         cur = self.cursor()
         cur.execute("SELECT name FROM person")
