@@ -15,7 +15,7 @@ class SeurantaDb(sqlite3.Connection):
         );""")
         cur.execute("""CREATE TABLE IF NOT EXISTS device (
             person_id INTEGER PRIMARY KEY REFERENCES person (id),
-            macaddress TEXT UNIQUE
+            mac_address TEXT UNIQUE
         );""")
 
 
@@ -33,7 +33,7 @@ class SeurantaDb(sqlite3.Connection):
         return list(name for (name,) in cur.fetchall())
 
 
-    def addpeople(self, people: list[str]):
+    def add_people(self, people: list[str]):
         cur = self.cursor()
         cur.executemany("INSERT OR IGNORE INTO person VALUES (?, ?)", ((None, person, ) for person in people))
         self.commit()
@@ -41,7 +41,7 @@ class SeurantaDb(sqlite3.Connection):
 
 def main():
     with SeurantaDb() as sdb:
-        sdb.addpeople(['45spoons'])
+        sdb.add_people(['45spoons'])
         print(sdb.people)
 
 

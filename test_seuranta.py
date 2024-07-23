@@ -2,7 +2,7 @@ import unittest
 
 from seuranta import SeurantaDb
 
-class TestSeurantaDbInit(unittest.TestCase):
+class TestSeurantaDb(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.seurdb = SeurantaDb(":memory:")
@@ -18,10 +18,9 @@ class TestSeurantaDbPeople(unittest.TestCase):
     def setUpClass(cls):
         cls.seurdb = SeurantaDb(":memory:")
 
-
-    def test_addpeople(self):
+    def test_add_people(self):
         self.assertListEqual([], self.seurdb.people)
-        self.seurdb.addpeople(['45spoons'])
+        self.seurdb.add_people(['45spoons'])
         self.assertListEqual(['45spoons'], self.seurdb.people)
 
 
