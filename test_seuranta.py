@@ -31,5 +31,12 @@ class TestSeurantaDb(unittest.TestCase):
         self.assertEqual([1, 2], id_list)
 
 
+    def test_add_device(self):
+        self.assertListEqual([], self.seurdb.devices)
+        self.seurdb.add_people(['45spoons'])
+        self.seurdb.add_device('45spoons', 'a1:b2:c3:d4:e5:f6')
+        self.assertListEqual(['a1:b2:c3:d4:e5:f6'], self.seurdb.devices)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
