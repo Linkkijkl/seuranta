@@ -47,6 +47,13 @@ class SeurantaDb(sqlite3.Connection):
         return id
 
 
+    def add_device(self, name: str, mac_address: str):
+        cur = self.cursor()
+        person_id = self.name_to_person_id(name)
+        cur.execute("INSERT OR IGNORE INTO device VALUES (?, ?)", (person_id, mac_address, ))
+        self.commit()
+
+
     def add_people(self, people: list[str]):
         cur = self.cursor()
         cur.executemany("INSERT OR IGNORE INTO person VALUES (?, ?)", ((None, person, ) for person in people))
