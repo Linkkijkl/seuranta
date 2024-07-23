@@ -33,6 +33,13 @@ class SeurantaDb(sqlite3.Connection):
         return list(name for (name,) in cur.fetchall())
 
 
+    def name_to_person_id(self, name: str) -> int:
+        cur = self.cursor()
+        cur.execute("SELECT id FROM person WHERE name = ?", (name,))
+        (id,) = cur.fetchone()
+        return id
+
+
     def add_people(self, people: list[str]):
         cur = self.cursor()
         cur.executemany("INSERT OR IGNORE INTO person VALUES (?, ?)", ((None, person, ) for person in people))
