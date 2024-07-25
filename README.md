@@ -12,6 +12,6 @@ git clone git@github.com:45spoons/seuranta.git
 cd seuranta/
 python3 -m venv .venv
 source ./.venv/bin/activate
-activate
+pip3 install -r requirements.txt
 python3 ./seuranta.py
 ```
