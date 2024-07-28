@@ -5,7 +5,7 @@ import asyncio
 import uvicorn
 
 
-class SeurantaUserInterface(FastAPI):
+class SeurantaApp(FastAPI):
     def __init__(self):
         super().__init__()
         self.templates = Jinja2Templates(directory="templates")
@@ -26,7 +26,7 @@ class SeurantaUserInterface(FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = SeurantaUserInterface()
+    app = SeurantaApp()
     return app
 
 
