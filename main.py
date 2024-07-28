@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, Response
+from fastapi.templating import Jinja2Templates
 import asyncio
 import uvicorn
 
@@ -6,6 +7,7 @@ import uvicorn
 class SeurantaUserInterface(FastAPI):
     def __init__(self):
         super().__init__()
+        self.templates = Jinja2Templates(directory="templates")
         self.init_routes()
 
 
