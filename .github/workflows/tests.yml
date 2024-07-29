@@ -18,7 +18,7 @@ jobs:
                 python-version: '3.x'
             - name: Install dependencies
               run: |
-                python -m piu install --upgrade pip setuptools wheel
+                python -m pip install --upgrade pip setuptools wheel
                 pip install -r requirements.txt
             - name: Test with unittest
               run: python -m unittest
