@@ -1,6 +1,6 @@
 import unittest
 from fastapi.testclient import TestClient
-from main import SeurantaApp
+from src.seuranta_app import SeurantaApp
 
 
 class TestSeurantaApp(unittest.TestCase):
