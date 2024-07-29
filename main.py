@@ -21,10 +21,6 @@ class SeurantaApp(FastAPI):
         return self.templates.TemplateResponse(request=req, name="index.html")
 
 
-    async def hello_kattila(self, _: Request) -> Response:
-        return Response("Hello, Kattila")
-
-
 def create_app() -> FastAPI:
     app = SeurantaApp()
     return app
