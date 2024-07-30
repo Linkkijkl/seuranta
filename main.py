@@ -9,7 +9,11 @@ def create_app() -> SeurantaApp:
 
 
 async def main():
-    config = uvicorn.Config("main:create_app", port=8000, factory=True)
+    config = uvicorn.Config("main:create_app",
+                            port=8000,
+                            factory=True,
+                            log_level="info",
+                            log_config="log_conf.yaml")
     server = uvicorn.Server(config)
     await server.serve()
 

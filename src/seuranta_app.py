@@ -3,16 +3,12 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler # type: ignore
 from apscheduler.triggers.cron import CronTrigger # type: ignore
+import logging
 
 
 class SeurantaApp(FastAPI):
     def __init__(self):
-        super().__init__()
-
-        lease_monitor = AsyncIOScheduler()
-        lease_monitor.add_job(self.fetch_leases, CronTrigger(second="*/15")) # type: ignore
-        lease_monitor.start()
-
+        self.logger = logging.getLogger(__name__)
         self.templates = Jinja2Templates(directory="templates")
         self.mount("/static", StaticFiles(directory="static"), name="static")
         self.init_routes()
