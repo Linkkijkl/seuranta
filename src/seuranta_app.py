@@ -9,7 +9,7 @@ import aiohttp
 
 
 class SeurantaApp(FastAPI):
-    def __init__(self, use_lease_monitor=True):
+    def __init__(self, use_lease_monitor: bool=True):
         self.use_lease_monitor=use_lease_monitor
         super().__init__(lifespan=SeurantaApp.lifespan)
         self.logger = logging.getLogger(__name__)
