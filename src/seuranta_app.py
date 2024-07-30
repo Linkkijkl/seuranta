@@ -44,7 +44,22 @@ class SeurantaApp(FastAPI):
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(self.LEASES_URL) as response:
                 self.logger.info(f"DHCP lease response status: {response.status}")
+                if response.status < 400:
+                    response_text = await response.text()
+                    clients = await self.parse_leases(response_text)
+                    for client in clients:
+                        self.logger.info(f"DHCP lease response status: {client}")
                 return response.status
+
+
+    @staticmethod
+    async def parse_leases(lease_lines: str) -> list[tuple[str, str, str]]:
+        clients = []
+        filtered_lines: list[str] = [line for line in lease_lines.split("\n") if line]
+        for line in filtered_lines:
+            (_, mac, ip, hostname, _) = line.split()
+            clients.append((mac,ip,hostname)) # type: ignore
+        return clients # type: ignore
 
 
     async def init_routes(self):
