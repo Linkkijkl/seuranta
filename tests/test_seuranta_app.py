@@ -5,7 +5,7 @@ from src.seuranta_app import SeurantaApp
 
 class TestSeurantaApp(unittest.TestCase):
     def setUp(self) -> None:
-        with TestClient(SeurantaApp()) as client:
+        with TestClient(SeurantaApp(use_lease_monitor=False)) as client:
             self.client = client
 
 
