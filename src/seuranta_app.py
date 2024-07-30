@@ -9,7 +9,8 @@ import aiohttp
 
 
 class SeurantaApp(FastAPI):
-    def __init__(self):
+    def __init__(self, use_lease_monitor=True):
+        self.use_lease_monitor=use_lease_monitor
         super().__init__(lifespan=SeurantaApp.lifespan)
         self.logger = logging.getLogger(__name__)
         self.templates = Jinja2Templates(directory="templates")
@@ -19,7 +20,8 @@ class SeurantaApp(FastAPI):
 
     @asynccontextmanager
     async def lifespan(self):
-        await self.init_lease_monitor()
+        if self.use_lease_monitor:
+            await self.init_lease_monitor()
         await self.init_routes()
         yield
 
