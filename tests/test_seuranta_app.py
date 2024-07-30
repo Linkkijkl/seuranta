@@ -5,7 +5,8 @@ from src.seuranta_app import SeurantaApp
 
 class TestSeurantaApp(unittest.TestCase):
     def setUp(self) -> None:
-        self.client = TestClient(SeurantaApp())
+        with TestClient(SeurantaApp()) as client:
+            self.client = client
 
 
     def test_index(self):
