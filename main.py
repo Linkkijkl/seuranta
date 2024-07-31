@@ -10,6 +10,7 @@ def create_app() -> SeurantaApp:
 
 async def main():
     config = uvicorn.Config("main:create_app",
+                            host="0.0.0.0",
                             port=8000,
                             factory=True,
                             log_level="info",
