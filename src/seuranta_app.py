@@ -9,6 +9,15 @@ import aiohttp
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 
+class TrackedEntity(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+
+
+class TrackedEntityCreate(SQLModel):
+    name: str
+
+
 def get_db_engine():
     SQLITE_FILE = "seuranta.db"
     SQLITE_URL = f"sqlite:///{SQLITE_FILE}"
