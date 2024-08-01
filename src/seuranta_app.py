@@ -6,11 +6,21 @@ from apscheduler.triggers.cron import CronTrigger # type: ignore
 from contextlib import asynccontextmanager
 import logging
 import aiohttp
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+
+
+def get_db_engine():
+    SQLITE_FILE = "seuranta.db"
+    SQLITE_URL = f"sqlite:///{SQLITE_FILE}"
+    connect_args = {"check_same_thread": False}
+    engine = create_engine(SQLITE_URL, echo=True, connect_args=connect_args)
+    return engine
 
 
 class SeurantaApp(FastAPI):
     def __init__(self, use_lease_monitor: bool=True):
         self.use_lease_monitor=use_lease_monitor
+        self.engine = get_db_engine()
         super().__init__(lifespan=SeurantaApp.lifespan)
         self.logger = logging.getLogger(__name__)
         self.templates = Jinja2Templates(directory="templates")
@@ -20,6 +30,8 @@ class SeurantaApp(FastAPI):
 
     @asynccontextmanager
     async def lifespan(self):
+        SQLModel.metadata.create_all(self.engine)
+
         if self.use_lease_monitor:
             await self.init_lease_monitor()
         await self.init_routes()
