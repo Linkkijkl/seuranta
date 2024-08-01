@@ -84,8 +84,25 @@ class SeurantaApp(FastAPI):
 
 
     async def init_routes(self):
-        self.add_route("/", route=self.index)
+        self.add_api_route("/", endpoint=self.index)
+        self.add_api_route("/tracked", methods=["get"], endpoint=self.get_tracked, response_model=list[TrackedEntity])
+        self.add_api_route("/tracked", methods=["post"], endpoint=self.create_tracked, response_model=TrackedEntity)
 
 
     async def index(self, req: Request) -> Response:
         return self.templates.TemplateResponse(request=req, name="index.html")
+
+
+    async def get_tracked(self, req: Request):
+        with Session(self.engine) as session:
+            tracked = session.exec(select(TrackedEntity)).all()
+            return tracked
+
+
+    async def create_tracked(self, req: Request, tracked: TrackedEntityCreate):
+        with Session(self.engine) as session:
+            db_tracked = TrackedEntity.model_validate(tracked)
+            session.add(db_tracked)
+            session.commit()
+            session.refresh(db_tracked)
+            return db_tracked
