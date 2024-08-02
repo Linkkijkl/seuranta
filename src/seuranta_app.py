@@ -6,29 +6,44 @@ from apscheduler.triggers.cron import CronTrigger # type: ignore
 from contextlib import asynccontextmanager
 import logging
 import aiohttp
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+import datetime
+from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
 
 
 class TrackedEntity(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
+    name: str = Field(index=True, unique=True)
+    created_date: str
+    devices: list["Device"] = Relationship(back_populates="trackedentity", cascade_delete=True)
 
 
 class TrackedEntityCreate(SQLModel):
     name: str
 
 
+class DeviceBase(SQLModel):
+    name: str = Field(index=True)
+    mac: str = Field(index=True, unique=True)
+
+
+class Device(DeviceBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    trackedentity_id: int = Field(index=True, foreign_key="trackedentity.id", ondelete="CASCADE")
+    trackedentity: TrackedEntity = Relationship(back_populates="devices")
+
+
 def get_db_engine():
     SQLITE_FILE = "seuranta.db"
     SQLITE_URL = f"sqlite:///{SQLITE_FILE}"
     connect_args = {"check_same_thread": False}
-    engine = create_engine(SQLITE_URL, echo=True, connect_args=connect_args)
+    engine = create_engine(SQLITE_URL, connect_args=connect_args)
     return engine
 
 
 class SeurantaApp(FastAPI):
     def __init__(self, use_lease_monitor: bool=True):
         self.use_lease_monitor=use_lease_monitor
+        self.clients = []
         self.engine = get_db_engine()
         super().__init__(lifespan=SeurantaApp.lifespan)
         self.logger = logging.getLogger(__name__)
@@ -67,9 +82,7 @@ class SeurantaApp(FastAPI):
                 self.logger.info(f"DHCP lease response status: {response.status}")
                 if response.status < 400:
                     response_text = await response.text()
-                    clients = await self.parse_leases(response_text)
-                    for client in clients:
-                        self.logger.info(f"DHCP lease response status: {client}")
+                    self.clients = await self.parse_leases(response_text)
                 return response.status
 
 
@@ -100,9 +113,22 @@ class SeurantaApp(FastAPI):
 
 
     async def create_tracked(self, req: Request, tracked: TrackedEntityCreate):
+        req_host = req.client.host
+        req_mac = None
+        for mac, ip, hostname in self.clients:
+            if req_host == hostname:
+                req_mac = mac
+
         with Session(self.engine) as session:
-            db_tracked = TrackedEntity.model_validate(tracked)
+            timestamp = datetime.datetime.now(datetime.timezone.utc).replace(second=0, microsecond=0).isoformat()
+            extra_data = {"created_date": timestamp}
+            db_tracked = TrackedEntity.model_validate(tracked, update=extra_data)
             session.add(db_tracked)
             session.commit()
             session.refresh(db_tracked)
+            if req_mac:
+                db_device = Device(name=hostname, mac=req_mac, trackedentity_id=db_tracked.id)
+                session.add(db_device)
+                session.commit()
+                session.refresh(db_device)
             return db_tracked
