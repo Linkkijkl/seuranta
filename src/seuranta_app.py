@@ -136,9 +136,8 @@ class SeurantaApp(FastAPI):
     async def update_present_names(self):
         session = next(get_session())
         online_macs = [lease.mac for lease in self.active_leases]
-        statement = select(TrackedEntity, Device).where(TrackedEntity.id == Device.trackedentity_id and Device.mac in online_macs)
-        results = session.exec(statement)
-        self.present_names = [tracked.name for tracked, device in results]
+        online_device_ids = session.exec(select(Device.trackedentity_id).where(Device.mac in online_macs))
+        self.present_names = session.exec(select(TrackedEntity.name).where(TrackedEntity.id in online_device_ids))
 
 
     async def init_routes(self):
@@ -168,12 +167,12 @@ class SeurantaApp(FastAPI):
         self.logger.info(f"Creating tracked entity {tracked.name}")
         self.logger.info(f"Creation request is coming from {req.client.host}")
         request_ip = req.client.host
-        request_lease := next([lease for lease in self.active_leases if lease.ip == request_ip])
+        request_lease = next(iter([lease for lease in self.active_leases if lease.ip == request_ip]))
         if request_lease:
             self.logger.debug(f"Creation request is associated with mac: {request_lease.mac}")
         else:
             self.logger.warn(f"Creating tracked entity {tracked.name} with no association to any devices")
-        name_exists = session.exec(select(TrackedEntity).where(TrackedEntity.name == tracked.name))
+        name_exists = session.exec(select(TrackedEntity).where(TrackedEntity.name == tracked.name)).first()
         if not name_exists:
             timestamp = datetime.datetime.now(datetime.timezone.utc).replace(second=0, microsecond=0).isoformat()
             extra_data = {"created_date": timestamp}
@@ -184,9 +183,16 @@ class SeurantaApp(FastAPI):
         else:
             db_tracked = name_exists
         if request_lease:
-            db_device = DeviceCreate(name=req_lease.hostname, mac=req_lease.mac, trackedentity_id=db_tracked.id)
-            db_device = Device.model_validate(db_device)
-            session.add(db_device)
-            session.commit()
-            session.refresh(db_device)
+            device_exists = session.exec(select(Device).where(Device.mac == request_lease.mac)).first()
+            if device_exists:
+                device_exists.trackedentity_id = db_tracked.id
+                session.add(device_exists)
+                session.commit()
+                session.refresh(device_exists)
+            else:
+                db_device = DeviceCreate(name=request_lease.hostname, mac=request_lease.mac, trackedentity_id=db_tracked.id)
+                db_device = Device.model_validate(db_device)
+                session.add(db_device)
+                session.commit()
+                session.refresh(db_device)
         return db_tracked
