@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler # type: ignore
@@ -10,26 +10,50 @@ import datetime
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
 
 
-class TrackedEntity(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class TrackedEntityBase(SQLModel):
     name: str = Field(index=True, unique=True)
-    created_date: str
+
+
+class TrackedEntity(TrackedEntityBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
     devices: list["Device"] = Relationship(back_populates="trackedentity", cascade_delete=True)
+    created_date: str
 
 
-class TrackedEntityCreate(SQLModel):
-    name: str
+class TrackedEntityCreate(TrackedEntityBase):
+    pass
+
+
+class TrackedEntityPublic(TrackedEntityBase):
+    id: int
+    created_date: str
 
 
 class DeviceBase(SQLModel):
     name: str = Field(index=True)
     mac: str = Field(index=True, unique=True)
+    trackedentity_id: int = Field(index=True, foreign_key="trackedentity.id", ondelete="CASCADE")
 
 
 class Device(DeviceBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    trackedentity_id: int = Field(index=True, foreign_key="trackedentity.id", ondelete="CASCADE")
-    trackedentity: TrackedEntity = Relationship(back_populates="devices")
+    trackedentity: TrackedEntity | None = Relationship(back_populates="devices")
+
+
+class DeviceCreate(DeviceBase):
+    pass
+
+
+class DevicePublic(DeviceBase):
+    id: int
+
+
+class TrackedEntityPublicWithDevices(TrackedEntityPublic):
+    devices: list[DevicePublic]
+
+
+class DevicePublicWithTrackedEntity(DevicePublic):
+    trackedentity: TrackedEntityPublic | None = None
 
 
 def get_db_engine():
@@ -39,6 +63,9 @@ def get_db_engine():
     engine = create_engine(SQLITE_URL, connect_args=connect_args)
     return engine
 
+def get_session():
+    with Session(get_db_engine()) as session:
+        yield session
 
 class SeurantaApp(FastAPI):
     def __init__(self, use_lease_monitor: bool=True):
@@ -98,37 +125,50 @@ class SeurantaApp(FastAPI):
 
     async def init_routes(self):
         self.add_api_route("/", endpoint=self.index)
-        self.add_api_route("/tracked", methods=["get"], endpoint=self.get_tracked, response_model=list[TrackedEntity])
-        self.add_api_route("/tracked", methods=["post"], endpoint=self.create_tracked, response_model=TrackedEntity)
+        self.add_api_route("/trackeds", methods=["get"], endpoint=self.get_trackeds, response_model=list[TrackedEntityPublic])
+        self.add_api_route("/tracked", methods=["post"], endpoint=self.create_tracked, response_model=TrackedEntityPublicWithDevices)
+        self.add_api_route("/tracked/{tracked_id}", methods=["get"], endpoint=self.get_tracked, response_model=TrackedEntityPublicWithDevices)
 
 
     async def index(self, req: Request) -> Response:
         return self.templates.TemplateResponse(request=req, name="index.html")
 
 
-    async def get_tracked(self, req: Request):
-        with Session(self.engine) as session:
-            tracked = session.exec(select(TrackedEntity)).all()
-            return tracked
+    async def get_trackeds(self, session: Session = Depends(get_session)):
+        trackeds = session.exec(select(TrackedEntity)).all()
+        return trackeds
 
 
-    async def create_tracked(self, req: Request, tracked: TrackedEntityCreate):
+    async def get_tracked(self, tracked_id: int, session: Session = Depends(get_session)):
+        tracked = session.get(TrackedEntity, tracked_id)
+        if not tracked:
+            raise HTTPException(status_code=404, detail="TrackedEntity not found")
+        return tracked
+
+
+    async def create_tracked(self, req: Request, tracked: TrackedEntityCreate, session: Session = Depends(get_session)):
+        self.logger.debug(f"Creating tracked entity {tracked.name}")
+        self.logger.debug(f"Creation request is coming from {req.client.host}")
         req_host = req.client.host
         req_mac = None
         for mac, ip, hostname in self.clients:
             if req_host == hostname:
                 req_mac = mac
+        if req_mac:
+            self.logger.debug(f"Creation request is associated with mac: {req_mac}")
+        else:
+            self.logger.warn(f"Creating tracked entity {tracked.name} with no association to any devices")
 
-        with Session(self.engine) as session:
-            timestamp = datetime.datetime.now(datetime.timezone.utc).replace(second=0, microsecond=0).isoformat()
-            extra_data = {"created_date": timestamp}
-            db_tracked = TrackedEntity.model_validate(tracked, update=extra_data)
-            session.add(db_tracked)
+        timestamp = datetime.datetime.now(datetime.timezone.utc).replace(second=0, microsecond=0).isoformat()
+        extra_data = {"created_date": timestamp}
+        db_tracked = TrackedEntity.model_validate(tracked, update=extra_data)
+        session.add(db_tracked)
+        session.commit()
+        session.refresh(db_tracked)
+        if req_mac:
+            db_device = DeviceCreate(name=hostname, mac=req_mac, trackedentity_id=db_tracked.id)
+            db_device = Device.model_validate(db_device)
+            session.add(db_device)
             session.commit()
-            session.refresh(db_tracked)
-            if req_mac:
-                db_device = Device(name=hostname, mac=req_mac, trackedentity_id=db_tracked.id)
-                session.add(db_device)
-                session.commit()
-                session.refresh(db_device)
-            return db_tracked
+            session.refresh(db_device)
+        return db_tracked
