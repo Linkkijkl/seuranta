@@ -167,25 +167,24 @@ class SeurantaApp(FastAPI):
     async def create_tracked(self, req: Request, tracked: TrackedEntityCreate, session: Session = Depends(get_session)):
         self.logger.info(f"Creating tracked entity {tracked.name}")
         self.logger.info(f"Creation request is coming from {req.client.host}")
-        req_ip = req.client.host
-        req_lease = None
-        for lease in self.active_leases:
-            if req_ip == lease.ip:
-                req_lease = lease
-                break
-        if lease:
-            self.logger.debug(f"Creation request is associated with mac: {lease.mac}")
+        request_ip = req.client.host
+        request_lease := next([lease for lease in self.active_leases if lease.ip == request_ip])
+        if request_lease:
+            self.logger.debug(f"Creation request is associated with mac: {request_lease.mac}")
         else:
             self.logger.warn(f"Creating tracked entity {tracked.name} with no association to any devices")
-
-        timestamp = datetime.datetime.now(datetime.timezone.utc).replace(second=0, microsecond=0).isoformat()
-        extra_data = {"created_date": timestamp}
-        db_tracked = TrackedEntity.model_validate(tracked, update=extra_data)
-        session.add(db_tracked)
-        session.commit()
-        session.refresh(db_tracked)
-        if lease:
-            db_device = DeviceCreate(name=lease.hostname, mac=lease.mac, trackedentity_id=db_tracked.id)
+        name_exists = session.exec(select(TrackedEntity).where(TrackedEntity.name == tracked.name))
+        if not name_exists:
+            timestamp = datetime.datetime.now(datetime.timezone.utc).replace(second=0, microsecond=0).isoformat()
+            extra_data = {"created_date": timestamp}
+            db_tracked = TrackedEntity.model_validate(tracked, update=extra_data)
+            session.add(db_tracked)
+            session.commit()
+            session.refresh(db_tracked)
+        else:
+            db_tracked = name_exists
+        if request_lease:
+            db_device = DeviceCreate(name=req_lease.hostname, mac=req_lease.mac, trackedentity_id=db_tracked.id)
             db_device = Device.model_validate(db_device)
             session.add(db_device)
             session.commit()
