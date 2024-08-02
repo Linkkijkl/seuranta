@@ -1,5 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Tämä on etusivu</h1>
+<h1>Paikalla:</h1>
+<ul>
+{% for present_user in present_users %}
+<li>{{ present_user }}</li>
+{% else %}
+<li>ei ketään :'c</li>
+{% endfor %}
+</ul>
 {% endblock content %}
