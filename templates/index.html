@@ -3,8 +3,8 @@
 {% block content %}
 <h1>Paikalla:</h1>
 <ul>
-{% for present_user in present_users %}
-<li>{{ present_user }}</li>
+{% for name in present_names %}
+<li>{{ name }}</li>
 {% else %}
 <li>ei ketään :'c</li>
 {% endfor %}
