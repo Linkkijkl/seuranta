@@ -67,10 +67,19 @@ def get_session():
     with Session(get_db_engine()) as session:
         yield session
 
+
+class Lease():
+    def __init__(self, ip: str, hostname: str, mac: str):
+        self.ip: str = ip
+        self.hostname: str = hostname
+        self.mac: str = mac
+
+
 class SeurantaApp(FastAPI):
     def __init__(self, use_lease_monitor: bool=True):
         self.use_lease_monitor=use_lease_monitor
-        self.clients = []
+        self.active_leases: list[Lease] = []
+        self.present_names: list[str] = []
         self.engine = get_db_engine()
         super().__init__(lifespan=SeurantaApp.lifespan)
         self.logger = logging.getLogger(__name__)
@@ -109,18 +118,27 @@ class SeurantaApp(FastAPI):
                 self.logger.info(f"DHCP lease response status: {response.status}")
                 if response.status < 400:
                     response_text = await response.text()
-                    self.clients = await self.parse_leases(response_text)
+                    self.active_leases = await self.parse_leases(response_text)
+                    await self.update_present_names()
                 return response.status
 
 
     @staticmethod
-    async def parse_leases(lease_lines: str) -> list[tuple[str, str, str]]:
-        clients = []
+    async def parse_leases(lease_lines: str) -> list[Lease]:
+        leases = []
         filtered_lines: list[str] = [line for line in lease_lines.split("\n") if line]
         for line in filtered_lines:
             (_, mac, ip, hostname, _) = line.split()
-            clients.append((mac,ip,hostname)) # type: ignore
-        return clients # type: ignore
+            leases.append(Lease(ip=ip, hostname=hostname, mac=mac)) # type: ignore
+        return leases # type: ignore
+
+
+    async def update_present_names(self):
+        session = next(get_session())
+        online_macs = [lease.mac for lease in self.active_leases]
+        statement = select(TrackedEntity, Device).where(TrackedEntity.id == Device.trackedentity_id and Device.mac in online_macs)
+        results = session.exec(statement)
+        self.present_names = [tracked.name for tracked, device in results]
 
 
     async def init_routes(self):
@@ -131,7 +149,7 @@ class SeurantaApp(FastAPI):
 
 
     async def index(self, req: Request) -> Response:
-        return self.templates.TemplateResponse(request=req, name="index.html")
+        return self.templates.TemplateResponse(request=req, name="index.html", context={"present_names": self.present_names})
 
 
     async def get_trackeds(self, session: Session = Depends(get_session)):
@@ -147,15 +165,16 @@ class SeurantaApp(FastAPI):
 
 
     async def create_tracked(self, req: Request, tracked: TrackedEntityCreate, session: Session = Depends(get_session)):
-        self.logger.debug(f"Creating tracked entity {tracked.name}")
-        self.logger.debug(f"Creation request is coming from {req.client.host}")
-        req_host = req.client.host
-        req_mac = None
-        for mac, ip, hostname in self.clients:
-            if req_host == hostname:
-                req_mac = mac
-        if req_mac:
-            self.logger.debug(f"Creation request is associated with mac: {req_mac}")
+        self.logger.info(f"Creating tracked entity {tracked.name}")
+        self.logger.info(f"Creation request is coming from {req.client.host}")
+        req_ip = req.client.host
+        req_lease = None
+        for lease in self.active_leases:
+            if req_ip == lease.ip:
+                req_lease = lease
+                break
+        if lease:
+            self.logger.debug(f"Creation request is associated with mac: {lease.mac}")
         else:
             self.logger.warn(f"Creating tracked entity {tracked.name} with no association to any devices")
 
@@ -165,8 +184,8 @@ class SeurantaApp(FastAPI):
         session.add(db_tracked)
         session.commit()
         session.refresh(db_tracked)
-        if req_mac:
-            db_device = DeviceCreate(name=hostname, mac=req_mac, trackedentity_id=db_tracked.id)
+        if lease:
+            db_device = DeviceCreate(name=lease.hostname, mac=lease.mac, trackedentity_id=db_tracked.id)
             db_device = Device.model_validate(db_device)
             session.add(db_device)
             session.commit()
