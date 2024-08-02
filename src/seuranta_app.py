@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 import logging
 import aiohttp
 import datetime
+import aiofiles
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
 
 
@@ -86,6 +87,7 @@ class SeurantaApp(FastAPI):
         self.templates = Jinja2Templates(directory="templates")
         self.mount("/static", StaticFiles(directory="static"), name="static")
         self.LEASES_URL = 'http://192.168.1.1/moi'
+        self.EXPORT_FILEPATH = "exports/names.txt"
 
 
     @asynccontextmanager
@@ -120,6 +122,7 @@ class SeurantaApp(FastAPI):
                     response_text = await response.text()
                     self.active_leases = await self.parse_leases(response_text)
                     await self.update_present_names()
+                    await self.export_present_names()
                 return response.status
 
 
@@ -136,8 +139,14 @@ class SeurantaApp(FastAPI):
     async def update_present_names(self):
         session = next(get_session())
         online_macs = [lease.mac for lease in self.active_leases]
-        online_device_ids = session.exec(select(Device.trackedentity_id).where(Device.mac in online_macs))
-        self.present_names = session.exec(select(TrackedEntity.name).where(TrackedEntity.id in online_device_ids))
+        online_entity_ids = session.exec(select(Device.trackedentity_id).where(Device.mac.in_(online_macs))).all()
+        self.present_names = session.exec(select(TrackedEntity.name).where(TrackedEntity.id.in_(online_entity_ids))).all()
+
+
+    async def export_present_names(self):
+        async with aiofiles.open(self.EXPORT_FILEPATH, "w") as export:
+            await export.writelines(self.present_names)
+            await export.flush()
 
 
     async def init_routes(self):

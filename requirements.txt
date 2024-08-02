@@ -3,5 +3,6 @@ uvicorn
 jinja2
 apscheduler
 aiohttp
+aiofiles
 sqlmodel
 pyyaml
