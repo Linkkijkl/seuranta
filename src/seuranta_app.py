@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request, Response, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler # type: ignore
@@ -8,7 +8,7 @@ import logging
 import aiohttp
 import datetime
 import aiofiles
-from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
+from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select, col, Sequence # type: ignore
 
 
 class TrackedEntityBase(SQLModel):
