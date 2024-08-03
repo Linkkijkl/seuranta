@@ -76,6 +76,10 @@ class Lease():
         self.mac: str = mac
 
 
+    def __eq__(self, other: object) -> bool:
+        return self.__dict__ == other.__dict__
+
+
 class SeurantaApp(FastAPI):
     def __init__(self, use_lease_monitor: bool=True):
         self.use_lease_monitor=use_lease_monitor
