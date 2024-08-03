@@ -177,6 +177,7 @@ class SeurantaApp(FastAPI):
 
 
     async def create_tracked(self, req: Request, tracked: TrackedEntityCreate, session: Session = Depends(get_session)):
+        assert req.client
         self.logger.info(f"Creating tracked entity {tracked.name}")
         self.logger.info(f"Creation request is coming from {req.client.host}")
         request_ip = req.client.host
@@ -197,6 +198,7 @@ class SeurantaApp(FastAPI):
             db_tracked = name_exists
         if request_lease:
             device_exists = session.exec(select(Device).where(Device.mac == request_lease.mac)).first()
+            assert db_tracked.id
             if device_exists:
                 device_exists.trackedentity_id = db_tracked.id
                 session.add(device_exists)
