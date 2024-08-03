@@ -164,8 +164,8 @@ class SeurantaApp(FastAPI):
         return self.templates.TemplateResponse(request=req, name="index.html", context={"present_names": self.present_names})
 
 
-    async def get_trackeds(self, session: Session = Depends(get_session)):
-        trackeds = session.exec(select(TrackedEntity)).all()
+    async def get_trackeds(self, session: Session = Depends(get_session)) -> list[TrackedEntity]:
+        trackeds: list[TrackedEntity] = list(session.exec(select(TrackedEntity)).all())
         return trackeds
 
 
