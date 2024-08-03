@@ -9,12 +9,12 @@ class TestSeurantaApp(unittest.TestCase):
             self.client = client
 
 
-    def test_index(self):
+    def test_index_endpoint_exists(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
 
 
-    def test_styles(self):
+    def test_static_styles_exists(self):
         response = self.client.get("/static/styles.css")
         self.assertEqual(response.status_code, 200)
 
