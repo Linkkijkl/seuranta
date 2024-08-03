@@ -131,13 +131,13 @@ class SeurantaApp(FastAPI):
 
 
     @staticmethod
-    async def parse_leases(lease_lines: str) -> list[Lease]:
-        leases = []
-        filtered_lines: list[str] = [line for line in lease_lines.split("\n") if line]
-        for line in filtered_lines:
+    async def parse_leases(leases_str: str) -> list[Lease]:
+        leases: list[Lease] = []
+        lease_lines: list[str] = [line for line in leases_str.split("\n") if line]
+        for line in lease_lines:
             (_, mac, ip, hostname, _) = line.split()
-            leases.append(Lease(ip=ip, hostname=hostname, mac=mac)) # type: ignore
-        return leases # type: ignore
+            leases.append(Lease(ip=ip, hostname=hostname, mac=mac))
+        return leases
 
 
     async def update_present_names(self):
