@@ -143,8 +143,8 @@ class SeurantaApp(FastAPI):
     async def update_present_names(self):
         session = next(get_session())
         online_macs = [lease.mac for lease in self.active_leases]
-        online_entity_ids = session.exec(select(Device.trackedentity_id).where(Device.mac.in_(online_macs))).all()
-        self.present_names = session.exec(select(TrackedEntity.name).where(TrackedEntity.id.in_(online_entity_ids))).all()
+        online_entity_ids = session.exec(select(Device.trackedentity_id).where(col(Device.mac).in_(online_macs))).all()
+        self.present_names = list(session.exec(select(TrackedEntity.name).where(col(TrackedEntity.id).in_(online_entity_ids))).all())
 
 
     async def export_present_names(self):
