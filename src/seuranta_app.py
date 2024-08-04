@@ -181,9 +181,10 @@ class SeurantaApp(FastAPI):
         self.logger.info(f"Creating tracked entity {tracked.name}")
         self.logger.info(f"Creation request is coming from {req.client.host}")
         request_ip = req.client.host
-        request_lease = next(iter([lease for lease in self.active_leases if lease.ip == request_ip]))
-        if request_lease:
-            self.logger.debug(f"Creation request is associated with mac: {request_lease.mac}")
+        request_lease: Lease | None = None
+        if request_leases := [lease for lease in self.active_leases if lease.ip == request_ip]:
+            request_lease = request_leases.pop()
+            self.logger.info(f"Creation request is associated with mac: {request_lease.mac}")
         else:
             self.logger.warn(f"Creating tracked entity {tracked.name} with no association to any devices")
         name_exists = session.exec(select(TrackedEntity).where(TrackedEntity.name == tracked.name)).first()
