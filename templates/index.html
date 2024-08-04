@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block scripts %}
+<script>setTimeout(function() {location.reload()}, 30 * 1000)</script>
+{% endblock scripts%}
+
 {% block content %}
 <h1>Paikalla:</h1>
 <ul>
