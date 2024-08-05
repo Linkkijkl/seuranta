@@ -190,7 +190,7 @@ class SeurantaApp(FastAPI):
             request_lease = request_leases.pop()
             self.logger.info(f"Creation request is associated with mac: {request_lease.mac}")
         else:
-            self.logger.warn(f"Creating tracked entity {tracked.name} with no association to any devices")
+            self.logger.warning(f"Creating tracked entity {tracked.name} with no association to any devices")
         name_exists = session.exec(select(TrackedEntity).where(TrackedEntity.name == tracked.name)).first()
         if not name_exists:
             timestamp = datetime.datetime.now(datetime.timezone.utc).replace(second=0, microsecond=0).isoformat()
