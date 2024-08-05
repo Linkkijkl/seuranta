@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import Depends, FastAPI, Request, Response, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -81,8 +82,8 @@ class Lease():
 
 
 class SeurantaApp(FastAPI):
-    def __init__(self, use_lease_monitor: bool=True):
-        self.use_lease_monitor=use_lease_monitor
+    def __init__(self, **kwargs: dict[str, Any]):
+        self.__dict__.update(kwargs)
         self.active_leases: list[Lease] = []
         self.present_names: list[str] = []
         self.engine = get_db_engine()
@@ -98,13 +99,15 @@ class SeurantaApp(FastAPI):
     async def lifespan(self):
         SQLModel.metadata.create_all(self.engine)
 
-        if self.use_lease_monitor:
-            await self.init_lease_monitor()
         await self.init_routes()
+        await self.init_lease_monitor()
         yield
 
 
     async def init_lease_monitor(self):
+        if self.__dict__.get("disable_lease_monitor"):
+            self.logger.info("Lease monitor is disabled")
+            return
         self.logger.info("Initialising lease monitor")
         lease_status = await self.fetch_leases()
         if lease_status < 400:
@@ -126,7 +129,8 @@ class SeurantaApp(FastAPI):
                     response_text = await response.text()
                     self.active_leases = await self.parse_leases(response_text)
                     await self.update_present_names()
-                    await self.export_present_names()
+                    if not self.__dict__.get("disable_export"):
+                        await self.export_present_names()
                 return response.status
 
 

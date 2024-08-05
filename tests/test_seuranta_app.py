@@ -5,7 +5,9 @@ from src.seuranta_app import SeurantaApp, Lease
 
 class TestSeurantaApp(unittest.TestCase):
     def setUp(self) -> None:
-        with TestClient(SeurantaApp(use_lease_monitor=False)) as client:
+        testing_options = { "disable_lease_monitor": True,
+                            "disable_export": True}
+        with TestClient(app := SeurantaApp(**testing_options)) as client: # type: ignore
             self.client = client
 
 

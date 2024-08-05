@@ -1,10 +1,11 @@
+from typing import Any
 from src.seuranta_app import SeurantaApp
 import asyncio
 import uvicorn
 
 
-def create_app() -> SeurantaApp:
-    app = SeurantaApp()
+def create_app(**kwargs: dict[str, Any]) -> SeurantaApp:
+    app = SeurantaApp(**kwargs)
     return app
 
 
