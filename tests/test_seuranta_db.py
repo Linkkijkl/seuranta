@@ -3,7 +3,8 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
-from src.seuranta_app import SeurantaApp, create_engine, get_session
+from src.seuranta_app import SeurantaApp, get_session
+
 
 class TestSeurantaDb(unittest.TestCase):
     def setUp(self) -> None:
@@ -23,7 +24,7 @@ class TestSeurantaDb(unittest.TestCase):
             with TestClient(app := SeurantaApp(**testing_options)) as client: # type: ignore
                 self.testclient = client
                 app.dependency_overrides[get_session] = get_session_override
-                self.app = app # needed for teardown, maybe fixtures would avoid this
+                self.app = app # needed for teardown, TODO maybe fixtures would avoid this
 
 
     def tearDown(self) -> None:
