@@ -96,7 +96,7 @@ class SeurantaApp(FastAPI):
 
     async def export_present_names(self):
         async with aiofiles.open(self.EXPORT_FILEPATH, "w") as export:
-            await export.writelines(self.present_names)
+            await export.writelines("\n".join(self.present_names))
             await export.flush()
 
 
