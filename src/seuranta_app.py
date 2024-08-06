@@ -1,5 +1,5 @@
-from typing import Any
-from fastapi import Depends, FastAPI, Request, Response, HTTPException
+from typing import Any, Annotated
+from fastapi import Depends, FastAPI, Request, Response, Form, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler # type: ignore
@@ -102,6 +102,7 @@ class SeurantaApp(FastAPI):
 
     async def init_routes(self):
         self.add_api_route("/", endpoint=self.index)
+        self.add_api_route("/name-form", methods=["post"], endpoint=self.handle_name_form)
         self.add_api_route("/trackeds", methods=["get"], endpoint=self.get_trackeds, response_model=list[TrackedEntityPublic]) # type: ignore
         self.add_api_route("/tracked", methods=["post"], endpoint=self.create_tracked, response_model=TrackedEntityPublicWithDevices) # type: ignore
         self.add_api_route("/tracked/{tracked_id}", methods=["get"], endpoint=self.get_tracked, response_model=TrackedEntityPublicWithDevices) # type: ignore
@@ -109,6 +110,13 @@ class SeurantaApp(FastAPI):
 
     async def index(self, req: Request) -> Response:
         return self.templates.TemplateResponse(request=req, name="index.html", context={"present_names": self.present_names})
+
+
+    async def handle_name_form(self, req: Request, name: Annotated[str, Form()], session: Session = Depends(get_session)):
+        self.logger.info(f"Received name-form with name: {name}")
+        self.logger.info(f"Creation request is coming from {req.client.host}")
+        response = await self.create_tracked(req, TrackedEntityCreate(name=name), session=session)
+        return response
 
 
     async def get_trackeds(self, session: Session = Depends(get_session)) -> list[TrackedEntity]:
