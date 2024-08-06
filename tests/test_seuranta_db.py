@@ -32,23 +32,23 @@ class TestSeurantaDb(unittest.TestCase):
 
 
     def test_create_trackedentity_empty_json(self):
-            response = self.testclient.post(
-                "/tracked", json={}
-            )
+        response = self.testclient.post(
+            "/tracked", json={}
+        )
 
-            self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.status_code, 422)
 
 
     def test_create_trackedentity_valid_json(self):
-            response = self.testclient.post(
-                "/tracked", json={"name": "Alex"}
-            )
-            data = response.json()
+        response = self.testclient.post(
+            "/tracked", json={"name": "Alex"}
+        )
+        data = response.json()
 
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(data["name"], "Alex")
-            self.assertIsNotNone(data["id"])
-            self.assertIsNotNone(data["created_date"])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data["name"], "Alex")
+        self.assertIsNotNone(data["id"])
+        self.assertIsNotNone(data["created_date"])
 
 
     def test_name_form(self):
