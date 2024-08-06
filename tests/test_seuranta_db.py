@@ -56,7 +56,12 @@ class TestSeurantaDb(unittest.TestCase):
         response = self.testclient.post(
             "/name-form", data=form
         )
+        data = response.json()
+
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(data["name"], "Alex")
+        self.assertIsNotNone(data["id"])
+        self.assertIsNotNone(data["created_date"])
 
 
 if __name__ == "__main__":
