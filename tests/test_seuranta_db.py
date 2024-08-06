@@ -51,5 +51,13 @@ class TestSeurantaDb(unittest.TestCase):
             self.assertIsNotNone(data["created_date"])
 
 
+    def test_name_form(self):
+        form = {"name": "Alex"}
+        response = self.testclient.post(
+            "/name-form", data=form
+        )
+        self.assertEqual(response.status_code, 200)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
