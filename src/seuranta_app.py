@@ -41,13 +41,18 @@ class SeurantaApp(FastAPI):
 
 
     @property
+    def leases(self) -> list[Lease]:
+        return self._lease_monitor.leases
+
+
+    @property
     async def online_ips(self) -> list[str]:
-        return [lease.ipv4_addr for lease in self._lease_monitor.leases]
+        return [lease.ipv4_addr for lease in self.leases]
 
 
     @property
     async def online_macs(self) -> list[str]:
-        return [lease.mac_addr for lease in self._lease_monitor.leases]
+        return [lease.mac_addr for lease in self.leases]
 
 
     @property
@@ -130,7 +135,7 @@ class SeurantaApp(FastAPI):
         self.logger.info(f"Creation request is coming from {req.client.host}")
         request_ip = req.client.host
         request_lease: Lease | None = None
-        if request_leases := [lease for lease in self._lease_monitor.leases if lease.ipv4_addr == request_ip]:
+        if request_leases := [lease for lease in self.leases if lease.ipv4_addr == request_ip]:
             request_lease = request_leases.pop()
             self.logger.info(f"Creation request is associated with mac: {request_lease.mac_addr}")
         else:
