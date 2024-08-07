@@ -1,108 +1,71 @@
 from typing import Any, Annotated
+from pathlib import Path
 from fastapi import Depends, FastAPI, Request, Response, Form, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from apscheduler.schedulers.asyncio import AsyncIOScheduler # type: ignore
-from apscheduler.triggers.cron import CronTrigger # type: ignore
 from contextlib import asynccontextmanager
 from sqlmodel import SQLModel, Session, select, col
 import logging
-import aiohttp
 import datetime
 import aiofiles
 from .db import *
-
-
-class Lease():
-    def __init__(self, ip: str, hostname: str, mac: str):
-        self.ip: str = ip
-        self.hostname: str = hostname
-        self.mac: str = mac
-
-
-    def __eq__(self, other: object) -> bool:
-        return self.__dict__ == other.__dict__
+from .lease_monitor import Lease, LeaseMonitor
 
 
 class SeurantaApp(FastAPI):
+    present_names: list[str] = []
+
     def __init__(self, **kwargs: dict[str, Any]):
+        self.logger = logging.getLogger(__name__)
         self.__dict__.update(kwargs)
-        self.active_leases: list[Lease] = []
-        self.present_names: list[str] = []
         self.engine = get_db_engine()
         super().__init__(lifespan=SeurantaApp.lifespan)
-        self.logger = logging.getLogger(__name__)
         self.templates = Jinja2Templates(directory="templates")
         self.mount("/static", StaticFiles(directory="static"), name="static")
-        self.LEASES_URL = 'http://192.168.1.1/moi'
-        self.EXPORT_FILEPATH = "exports/names.txt"
+        self.EXPORT_DIR = Path("exports")
+        self.NAMES_TXT = Path("names.txt")
+        self.EXPORT_FILENAMES = {self.NAMES_TXT}
 
 
     @asynccontextmanager
     async def lifespan(self):
         SQLModel.metadata.create_all(self.engine)
-
+        await self.init_export_paths()
+        self._lease_monitor: LeaseMonitor = LeaseMonitor('http://192.168.1.1/moi', self.update_names)
         await self.init_routes()
-        await self.init_lease_monitor()
         yield
 
 
-    async def init_lease_monitor(self):
-        if self.__dict__.get("disable_lease_monitor"):
-            self.logger.info("Lease monitor is disabled")
-            return
-        self.logger.info("Initialising lease monitor")
-        lease_status = await self.fetch_leases()
-        if lease_status < 400:
-            lease_monitor = AsyncIOScheduler()
-            lease_monitor.add_job(self.fetch_leases, CronTrigger(second="*/15")) # type: ignore
-            lease_monitor.start()
-            self.logger.info("Started DHCP lease monitor")
-        else:
-            self.logger.error("Didn't form connection with DHCP server, therefore not starting lease monitor")
-
-
-    async def fetch_leases(self) -> int:
-        timeout = aiohttp.ClientTimeout(total=10, connect=5)
-        self.logger.info("Fetching DHCP leases")
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(self.LEASES_URL) as response:
-                self.logger.info(f"DHCP lease response status: {response.status}")
-                if response.status < 400:
-                    response_text = await response.text()
-                    self.active_leases = await self.parse_leases(response_text)
-                    await self.update_present_names()
-                    if not self.__dict__.get("disable_export"):
-                        await self.export_present_names()
-                return response.status
-
-
-    @staticmethod
-    async def parse_leases(leases_str: str) -> list[Lease]:
-        leases: list[Lease] = []
-        lease_lines: list[str] = [line for line in leases_str.split("\n") if line]
-        for line in lease_lines:
-            (_, mac, ip, hostname, _) = line.split()
-            leases.append(Lease(ip=ip, hostname=hostname, mac=mac))
-        return leases
-
-
-    async def update_present_names(self):
+    async def update_names(self):
         session = next(get_session())
-        online_macs = [lease.mac for lease in self.active_leases]
+        online_macs = [lease.mac_addr for lease in await self._lease_monitor.leases]
         online_entity_ids = session.exec(select(Device.trackedentity_id).where(col(Device.mac).in_(online_macs))).all()
         self.present_names = list(session.exec(select(TrackedEntity.name).where(col(TrackedEntity.id).in_(online_entity_ids))).all())
+        await self.export_names()
 
 
-    async def export_present_names(self):
-        async with aiofiles.open(self.EXPORT_FILEPATH, "w") as export:
+    async def export_names(self):
+        names_path = self.EXPORT_DIR/self.NAMES_TXT
+        self.logger.debug(f"Exporting names to {names_path}")
+        async with aiofiles.open(names_path, "w") as export:
             await export.writelines("\n".join(self.present_names))
             await export.flush()
 
 
+    async def init_export_paths(self):
+        if not self.EXPORT_DIR.is_dir():
+            self.logger.info(f"Creating {self.EXPORT_DIR} directory")
+            self.EXPORT_DIR.mkdir()
+        for filename in self.EXPORT_FILENAMES:
+            if (filepath := self.EXPORT_DIR/filename).exists():
+                continue
+            self.logger.info(f"Creating {filepath}")
+            filepath.touch()
+
+
     async def init_routes(self):
         self.add_api_route("/", endpoint=self.index)
-        self.add_api_route("/name-form", methods=["post"], endpoint=self.handle_name_form)
+        self.add_api_route("/name-form", methods=["post"], endpoint=self.handle_name_form) # type: ignore
         self.add_api_route("/trackeds", methods=["get"], endpoint=self.get_trackeds, response_model=list[TrackedEntityPublic]) # type: ignore
         self.add_api_route("/tracked", methods=["post"], endpoint=self.create_tracked, response_model=TrackedEntityPublicWithDevices) # type: ignore
         self.add_api_route("/tracked/{tracked_id}", methods=["get"], endpoint=self.get_tracked, response_model=TrackedEntityPublicWithDevices) # type: ignore
@@ -114,6 +77,7 @@ class SeurantaApp(FastAPI):
 
     async def handle_name_form(self, req: Request, name: Annotated[str, Form()], session: Session = Depends(get_session)):
         self.logger.info(f"Received name-form with name: {name}")
+        assert req.client
         self.logger.info(f"Creation request is coming from {req.client.host}")
         response = await self.create_tracked(req, TrackedEntityCreate(name=name), session=session)
         return response
@@ -137,9 +101,9 @@ class SeurantaApp(FastAPI):
         self.logger.info(f"Creation request is coming from {req.client.host}")
         request_ip = req.client.host
         request_lease: Lease | None = None
-        if request_leases := [lease for lease in self.active_leases if lease.ip == request_ip]:
+        if request_leases := [lease for lease in await self._lease_monitor.leases if lease.ipv4_addr == request_ip]:
             request_lease = request_leases.pop()
-            self.logger.info(f"Creation request is associated with mac: {request_lease.mac}")
+            self.logger.info(f"Creation request is associated with mac: {request_lease.mac_addr}")
         else:
             self.logger.info(f"Creating tracked entity {tracked.name} with no association to any devices")
         name_exists = session.exec(select(TrackedEntity).where(TrackedEntity.name == tracked.name)).first()
@@ -153,7 +117,7 @@ class SeurantaApp(FastAPI):
         else:
             db_tracked = name_exists
         if request_lease:
-            device_exists = session.exec(select(Device).where(Device.mac == request_lease.mac)).first()
+            device_exists = session.exec(select(Device).where(Device.mac == request_lease.mac_addr)).first()
             assert db_tracked.id
             if device_exists:
                 device_exists.trackedentity_id = db_tracked.id
@@ -161,7 +125,7 @@ class SeurantaApp(FastAPI):
                 session.commit()
                 session.refresh(device_exists)
             else:
-                db_device = DeviceCreate(name=request_lease.hostname, mac=request_lease.mac, trackedentity_id=db_tracked.id)
+                db_device = DeviceCreate(name=request_lease.hostname, mac=request_lease.mac_addr, trackedentity_id=db_tracked.id)
                 db_device = Device.model_validate(db_device)
                 session.add(db_device)
                 session.commit()
