@@ -8,8 +8,12 @@ from sqlmodel import SQLModel, Session, select, col
 import logging
 import datetime
 import aiofiles
+import re
 from .db import *
 from .lease_monitor import Lease, LeaseMonitor
+
+
+_NAME_MAXLENGTH = 30
 
 
 class SeurantaApp(FastAPI):
@@ -86,10 +90,15 @@ class SeurantaApp(FastAPI):
         return self.templates.TemplateResponse(request=req, name="index.html", context={"present_names": await self.present_names})
 
 
+    @staticmethod
+    async def sanitise_name(name: str) -> str:
+        return re.sub(r'[^a-zA-Z0-9]', '', name)[:_NAME_MAXLENGTH]
+
+
     async def handle_name_form(self, req: Request, name: Annotated[str, Form()], session: Session = Depends(get_session)):
         self.logger.info(f"Received name-form with name: {name}")
         assert req.client
-        self.logger.info(f"Creation request is coming from {req.client.host}")
+        name = await self.sanitise_name(name)
         response = await self.create_tracked(req, TrackedEntityCreate(name=name), session=session)
         return response
 
