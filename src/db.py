@@ -60,6 +60,6 @@ class DevicePublicWithTrackedEntity(DevicePublic):
     trackedentity: TrackedEntityPublic | None = None
 
 
-async def get_db_device(lease: Lease, session: Session) -> Device | None:
+def get_db_device(lease: Lease, session: Session) -> Device | None:
     query = select(Device).where(Device.mac == lease.mac_addr)
     return session.exec(query).first()
