@@ -30,7 +30,6 @@ class TestSeurantaDb(unittest.TestCase):
                 app.dependency_overrides[get_session] = get_session_override
 
 
-    @unittest.skip("ResourceWarning: Unclosed <MemoryObjectReceiveStream>")
     def test_create_trackedentity_empty_json(self):
         response = self.client.post(
             "/tracked", json={}
@@ -39,7 +38,6 @@ class TestSeurantaDb(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
 
 
-    @unittest.skip("ResourceWarning: Unclosed <MemoryObjectReceiveStream>")
     def test_create_trackedentity_valid_json(self):
         response = self.client.post(
             "/tracked", json={"name": "Alex"}
