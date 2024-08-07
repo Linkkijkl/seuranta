@@ -41,6 +41,11 @@ class SeurantaApp(FastAPI):
 
 
     @property
+    async def online_ips(self) -> list[str]:
+        return [lease.ipv4_addr for lease in self._lease_monitor.leases]
+
+
+    @property
     async def online_macs(self) -> list[str]:
         return [lease.mac_addr for lease in self._lease_monitor.leases]
 
@@ -96,9 +101,13 @@ class SeurantaApp(FastAPI):
 
 
     async def handle_name_form(self, req: Request, name: Annotated[str, Form()], session: Session = Depends(get_session)):
-        self.logger.info(f"Received name-form with name: {name}")
         assert req.client
+        ip = req.client.host
         name = await self.sanitise_name(name)
+        self.logger.info(f"Received name-form from {name}@{ip}")
+        if lease := self._lease_monitor.get_lease_by_ip(ip):
+            if device := await get_db_device(lease):
+                assert isinstance(device, Device)
         response = await self.create_tracked(req, TrackedEntityCreate(name=name), session=session)
         return response
 
