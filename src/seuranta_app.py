@@ -88,7 +88,7 @@ class SeurantaApp(FastAPI):
 
     async def init_routes(self):
         self.add_api_route("/", endpoint=self.index)
-        self.add_api_route("/name-form", methods=["post"], endpoint=self.handle_name_form) # type: ignore
+        self.add_api_route("/name-form", methods=["post"], endpoint=self.handle_name_form, response_model=TrackedEntityPublicWithDevices) # type: ignore
         self.add_api_route("/trackeds", methods=["get"], endpoint=self.get_trackeds, response_model=list[TrackedEntityPublic]) # type: ignore
         self.add_api_route("/tracked", methods=["post"], endpoint=self.create_tracked, response_model=TrackedEntityPublicWithDevices) # type: ignore
         self.add_api_route("/tracked/{tracked_id}", methods=["get"], endpoint=self.get_tracked, response_model=TrackedEntityPublicWithDevices) # type: ignore
