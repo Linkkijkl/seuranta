@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import AsyncMock, PropertyMock, patch
 from src.lease_monitor import Lease, LeaseMonitor
 
 
@@ -38,3 +39,40 @@ class TestLeaseMonitorLeaseParsing(unittest.IsolatedAsyncioTestCase):
                           Lease("192.168.1.101","test-hostname-2","6f:5e:4d:3c:2b:1a")]
         for ans, exp in zip(active_leases, expected_lease):
             self.assertEqual(ans, exp)
+
+
+class TestLeaseMonitor(unittest.IsolatedAsyncioTestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.mock_on_update = AsyncMock()
+
+
+    async def test_lease_monitor_calls_on_update(self):
+        with patch.object(LeaseMonitor, "fetch_leases", return_value = 200):
+            lease_monitor = LeaseMonitor("", self.mock_on_update)
+            await lease_monitor.update_leases()
+            self.mock_on_update.assert_called()
+
+
+    async def test_get_lease_by_id_exists(self):
+        with patch.object(LeaseMonitor, "leases", new_callable=PropertyMock) as mock_leases:
+            leases = [Lease("192.168.1.100","test-hostname-1","1a:2b:3c:4d:5e:6f"),
+                    Lease("192.168.1.101","test-hostname-2","6f:5e:4d:3c:2b:1a")]
+            mock_leases.return_value = leases
+            lease_monitor = LeaseMonitor("", self.mock_on_update)
+            result_lease = await lease_monitor.get_lease_by_ip("192.168.1.100")
+            expected_lease = Lease("192.168.1.100", "test-hostname-1", "1a:2b:3c:4d:5e:6f")
+            self.assertEqual(result_lease, expected_lease)
+
+
+    async def test_get_lease_by_id_ip_not_leased_returns_none(self):
+        with patch("src.lease_monitor.LeaseMonitor.leases", new_callable=PropertyMock) as mock_leases:
+            leases = []
+            mock_leases.return_value = leases
+            lease_monitor = LeaseMonitor("", self.mock_on_update)
+            result_lease = await lease_monitor.get_lease_by_ip("192.168.1.100")
+            self.assertIsNone(result_lease)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
