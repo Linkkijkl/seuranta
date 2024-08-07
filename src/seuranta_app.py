@@ -17,8 +17,6 @@ _NAME_MAXLENGTH = 30
 
 
 class SeurantaApp(FastAPI):
-    present_names: list[str] = []
-
     def __init__(self, **kwargs: dict[str, Any]):
         self.logger = logging.getLogger(__name__)
         self.__dict__.update(kwargs)
