@@ -53,10 +53,14 @@ class LeaseMonitor(AsyncIOScheduler):
         return response.status
 
 
-    async def update_leases(self) -> int:
+    async def fetch_leases(self):
         async with aiohttp.ClientSession(timeout=self._req_timeout) as session:
             async with session.get(self._endpoint) as response:
-                status = await self.handle_lease_response(response)
+                return await self.handle_lease_response(response)
+
+
+    async def update_leases(self) -> int:
+        status = await self.fetch_leases()
         if self.on_update:
             await self.on_update()
         return status
