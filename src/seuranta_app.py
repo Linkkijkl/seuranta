@@ -107,7 +107,7 @@ class SeurantaApp(FastAPI):
         self.logger.info(f"Received name-form from {name}@{ip}")
         if lease := await self._lease_monitor.get_lease_by_ip(ip):
             if device := get_db_device(lease, session):
-                pass
+                self.logger.info(f"Request is associated with an existing device in the database, {device.mac}")
         response = await self.create_tracked(req, TrackedEntityCreate(name=name), session=session)
         return response
 
