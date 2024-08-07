@@ -63,5 +63,5 @@ class LeaseMonitor(AsyncIOScheduler):
 
 
     @property
-    async def leases(self) -> list[Lease]:
-        return self._leases
+    def leases(self) -> list[Lease]:
+        return self._leases.copy()

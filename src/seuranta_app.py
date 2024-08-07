@@ -31,24 +31,35 @@ class SeurantaApp(FastAPI):
     async def lifespan(self):
         SQLModel.metadata.create_all(self.engine)
         await self.init_export_paths()
-        self._lease_monitor: LeaseMonitor = LeaseMonitor('http://192.168.1.1/moi', self.update_names)
+        self._lease_monitor: LeaseMonitor = LeaseMonitor('http://192.168.1.1/moi', self.export_names)
         await self.init_routes()
         yield
 
 
-    async def update_names(self):
+    @property
+    async def online_macs(self) -> list[str]:
+        return [lease.mac_addr for lease in self._lease_monitor.leases]
+
+
+    @property
+    async def online_entity_ids(self) -> list[int]:
         session = next(get_session())
-        online_macs = [lease.mac_addr for lease in await self._lease_monitor.leases]
-        online_entity_ids = session.exec(select(Device.trackedentity_id).where(col(Device.mac).in_(online_macs))).all()
-        self.present_names = list(session.exec(select(TrackedEntity.name).where(col(TrackedEntity.id).in_(online_entity_ids))).all())
-        await self.export_names()
+        select_entity_id_by_mac = select(Device.trackedentity_id).where(col(Device.mac).in_(await self.online_macs))
+        return list(session.exec(select_entity_id_by_mac).all())
+
+
+    @property
+    async def present_names(self) -> list[str]:
+        session = next(get_session())
+        select_name_by_online_ids = select(TrackedEntity.name).where(col(TrackedEntity.id).in_(await self.online_entity_ids))
+        return list(session.exec(select_name_by_online_ids).all())
 
 
     async def export_names(self):
         names_path = self.EXPORT_DIR/self.NAMES_TXT
         self.logger.debug(f"Exporting names to {names_path}")
         async with aiofiles.open(names_path, "w") as export:
-            await export.writelines("\n".join(self.present_names))
+            await export.writelines("\n".join(await self.present_names))
             await export.flush()
 
 
@@ -72,7 +83,7 @@ class SeurantaApp(FastAPI):
 
 
     async def index(self, req: Request) -> Response:
-        return self.templates.TemplateResponse(request=req, name="index.html", context={"present_names": self.present_names})
+        return self.templates.TemplateResponse(request=req, name="index.html", context={"present_names": await self.present_names})
 
 
     async def handle_name_form(self, req: Request, name: Annotated[str, Form()], session: Session = Depends(get_session)):
@@ -101,7 +112,7 @@ class SeurantaApp(FastAPI):
         self.logger.info(f"Creation request is coming from {req.client.host}")
         request_ip = req.client.host
         request_lease: Lease | None = None
-        if request_leases := [lease for lease in await self._lease_monitor.leases if lease.ipv4_addr == request_ip]:
+        if request_leases := [lease for lease in self._lease_monitor.leases if lease.ipv4_addr == request_ip]:
             request_lease = request_leases.pop()
             self.logger.info(f"Creation request is associated with mac: {request_lease.mac_addr}")
         else:
