@@ -1,4 +1,5 @@
-from sqlmodel import Field, Relationship, Session, SQLModel, create_engine # type: ignore
+from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select # type: ignore
+from .lease_monitor import Lease
 
 
 def get_db_engine():
@@ -57,3 +58,8 @@ class TrackedEntityPublicWithDevices(TrackedEntityPublic):
 
 class DevicePublicWithTrackedEntity(DevicePublic):
     trackedentity: TrackedEntityPublic | None = None
+
+
+async def get_db_device(lease: Lease, session: Session) -> Device | None:
+    query = select(Device).where(Device.mac == lease.mac_addr)
+    return session.exec(query).first()
