@@ -62,6 +62,13 @@ class LeaseMonitor(AsyncIOScheduler):
         return status
 
 
+    async def get_lease_by_ip(self, ipv4_addr: str) -> Lease | None:
+        for lease in self.leases:
+            if lease.ipv4_addr == ipv4_addr:
+                return lease
+        return None
+
+
     @property
     def leases(self) -> list[Lease]:
         return self._leases.copy()
