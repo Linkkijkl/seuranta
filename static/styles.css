@@ -15,7 +15,7 @@ table, caption, tbody, tfoot, thead, tr, th, td,
 article, aside, canvas, details, embed,
 figure, figcaption, footer, header, hgroup,
 menu, nav, output, ruby, section, summary,
-time, mark, audio, video {
+time, mark, audio, video, input, button {
     margin: 0;
     padding: 0;
     border: 0;
@@ -81,5 +81,70 @@ table {
 
     footer > * {
         margin: 3px;
+    }
+}
+
+/* Styles for name-form */
+@media all {
+    form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1em;
+    }
+
+    form input {
+        color: var(--main-fg-color);
+        border-color: var(--sec-bg-color);
+        background-color: var(--sec-bg-color);
+        border: 2px solid;
+        border-radius: 0.3em;
+        width: calc(100% - 4px);
+        font-size: xx-large;
+        text-align: center;
+        transition: border-color 0.6s;
+        transition: background-color 0.6s;
+    }
+
+    form input:valid {
+        background-color: color-mix(in srgb, var(--sec-bg-color), lime 10%);
+    }
+
+    form input:user-valid {
+        background-color: color-mix(in srgb, var(--sec-bg-color), lime 25%);
+    }
+
+    form input:invalid {
+        background-color: color-mix(in srgb, var(--sec-bg-color), red 10%);
+    }
+
+    form input:user-invalid {
+        border-color: color-mix(in srgb, var(--main-fg-color), red 50%);
+        background-color: color-mix(in srgb, var(--sec-bg-color), red 10%);
+    }
+
+    form label {
+        font-size: large;
+    }
+
+    form button {
+        color: var(--main-fg-color);
+        border-color: var(--sec-fg-color);
+        background-color: var(--sec-bg-color);
+        border: 2px solid;
+        border-radius: 0.3em;
+        width: fit-content;
+        padding: 0.3em;
+        font-size: large;
+        text-align: center;
+        transition: opacity 0.6s;
+    }
+
+    form button:disabled {
+        opacity: 50%;
+    }
+
+    form button, form input {
+        box-shadow: 2px 2px black;
     }
 }
