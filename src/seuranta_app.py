@@ -13,7 +13,7 @@ from .db import *
 from .lease_monitor import Lease, LeaseMonitor
 
 
-_NAME_MAXLENGTH = 30
+_NAME_MAXLENGTH = 20
 
 
 class SeurantaApp(FastAPI):
