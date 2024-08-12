@@ -45,4 +45,10 @@ q:before, q:after {
 table {
     border-collapse: collapse;
     border-spacing: 0;
+} /* CSS reset ends */
+
+:root {
+    --main-fg-color: rgb(31, 41, 35);
+    --main-bg-color: rgb(227, 227, 227);
+    --sec-bg-color: rgb(195, 195, 195);
 }
