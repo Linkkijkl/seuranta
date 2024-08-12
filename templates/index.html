@@ -1,8 +1,5 @@
 {% extends "base.html" %}
 
-{% block scripts %}
-<script>setTimeout(function() {location.reload()}, 30 * 1000)</script>
-{% endblock scripts%}
 {% block content %}
 <form action="/name-form" method="post">
     <input required type="text" name="name"/>
