@@ -88,6 +88,7 @@ class SeurantaApp(FastAPI):
 
     async def init_routes(self):
         self.add_api_route("/", endpoint=self.index)
+        self.add_api_route("/name-form", methods=["get"], endpoint=self.name_form_page) # type: ignore
         self.add_api_route("/name-form", methods=["post"], endpoint=self.handle_name_form, response_model=TrackedEntityPublicWithDevices) # type: ignore
         self.add_api_route("/trackeds", methods=["get"], endpoint=self.get_trackeds, response_model=list[TrackedEntityPublic]) # type: ignore
         self.add_api_route("/tracked", methods=["post"], endpoint=self.create_tracked, response_model=TrackedEntityPublicWithDevices) # type: ignore
@@ -97,6 +98,9 @@ class SeurantaApp(FastAPI):
     async def index(self, req: Request) -> Response:
         return self.templates.TemplateResponse(request=req, name="index.html", context={"present_names": await self.present_names})
 
+
+    async def name_form_page(self, req: Request) -> Response:
+        return self.templates.TemplateResponse(request=req, name="name-form.html", context={"name_maxlength": _NAME_MAXLENGTH})
 
     @staticmethod
     async def sanitise_name(name: str) -> str:
