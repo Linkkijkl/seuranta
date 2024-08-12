@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", (event) => {
+        const name = document.getElementById("uname");
+        const submit = document.getElementById("submit-name-form");
+
+        name.addEventListener("input", (event) => {
+            submit.disabled = !(name.validity.valid)
+        });
+    });
+</script>
+{% endblock scripts %}
+
+{% block content %}
+<form action="/name-form" method="post">
+    <label for="uname">Valitse nimimerkki:</label>
+    <input required type="text" id="uname" name="name" placeholder="esim. alex" maxlength="{{ name_maxlength }}" pattern="[a-zA-Z0-9]{2,{{ name_maxlength }}}"/>
+    <button type="submit" id="submit-name-form" name="submit-name-form">Lisää seurantaan</button>
+</form>
+{% endblock content %}
