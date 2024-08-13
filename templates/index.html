@@ -1,10 +1,6 @@
 {% extends "base.html" %}
 
 {% block content %}
-<form action="/name-form" method="post">
-    <input required type="text" name="name"/>
-    <input type="submit"/>
-</form>
 <h1>Paikalla:</h1>
 <ul>
 {% for name in present_names %}
