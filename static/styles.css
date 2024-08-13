@@ -77,8 +77,6 @@ table {
     }
 
     div.content {
-        width: max-content;
-        max-width: 800px;
         margin: 20px;
     }
 
