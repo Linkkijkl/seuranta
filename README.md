@@ -1,5 +1,7 @@
 # Opt-in kävijäseuranta
 
+![tests](https://github.com/45spoons/seuranta/actions/workflows/tests.yml/badge.svg)
+
 ## Alustaminen
 
 Vaatimukset:
