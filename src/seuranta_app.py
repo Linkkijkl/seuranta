@@ -21,7 +21,7 @@ class SeurantaApp(FastAPI):
         self.logger = logging.getLogger(__name__)
         self.__dict__.update(kwargs)
         self.engine = get_db_engine()
-        super().__init__(lifespan=SeurantaApp.lifespan)
+        super().__init__(lifespan=SeurantaApp.lifespan, **kwargs) # type: ignore
         self.templates = Jinja2Templates(directory="templates")
         self.mount("/static", StaticFiles(directory="static"), name="static")
         self.EXPORT_DIR = Path("exports")

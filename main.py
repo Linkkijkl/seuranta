@@ -5,6 +5,8 @@ import uvicorn
 
 
 def create_app(**kwargs: dict[str, Any]) -> SeurantaApp:
+    disable_docs = { "docs_url": None, "redoc_url": None }
+    kwargs.update(**disable_docs) # type: ignore
     app = SeurantaApp(**kwargs)
     return app
 
