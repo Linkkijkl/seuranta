@@ -1,12 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Paikalla:</h1>
-<ul>
-{% for name in present_names %}
-<li>{{ name }}</li>
+{% if tracked %}
+    <h1>Hei {{ tracked.name }},</h1>
+    <p>Voit vaihtaa nimesi samalla lomakkeella, millä loit seurantaan nimesi: <a href="{{ url_for('name_form_page') }}">{{ url_for('name_form_page') }}</a></p>
 {% else %}
-<li>ei ketään :'c</li>
-{% endfor %}
-</ul>
+<p>Liitä päätelaitteesi seurantaan seuraavalla lomakkeella: <a href="{{ url_for('name_form_page') }}">{{ url_for('name_form_page') }}</a></p>
+    {% if present_names %}
+        <ul>
+        {% for name in present_names %}
+            <li>{{ name }}</li>
+        {% else %}
+            <li>ei ketään :'c</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+{% endif %}
 {% endblock content %}

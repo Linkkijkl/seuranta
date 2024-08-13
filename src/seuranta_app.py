@@ -93,7 +93,11 @@ class SeurantaApp(FastAPI):
 
 
     async def index(self, req: Request) -> Response:
-        return self.templates.TemplateResponse(request=req, name="index.html", context={"present_names": await self.present_names})
+        context: dict[str, Any] = {"present_names": await self.present_names}
+        if req.client and (lease := await self._lease_monitor.get_lease_by_ip(req.client.host)):
+            if device := get_db_device(lease, next(get_session())):
+                context["tracked"] = device.trackedentity
+        return self.templates.TemplateResponse(request=req, name="index.html", context=context)
 
 
     async def name_form_page(self, req: Request) -> Response:
