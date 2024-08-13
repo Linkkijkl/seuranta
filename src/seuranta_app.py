@@ -22,7 +22,8 @@ class SeurantaApp(FastAPI):
         self.__dict__.update(kwargs)
         self.engine = get_db_engine()
         super().__init__(lifespan=SeurantaApp.lifespan, **kwargs) # type: ignore
-        self.templates = Jinja2Templates(directory="templates")
+        jinja_options: dict[str, Any] = {"trim_blocks": True}
+        self.templates = Jinja2Templates(directory="templates", **jinja_options)
         self.mount("/static", StaticFiles(directory="static"), name="static")
         self.EXPORT_DIR = Path("exports")
         self.NAMES_TXT = Path("names.txt")
