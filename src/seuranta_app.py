@@ -1,6 +1,6 @@
 from typing import Any, Annotated
 from pathlib import Path
-from fastapi import Depends, FastAPI, Request, Response, Form, HTTPException
+from fastapi import Depends, FastAPI, Request, Response, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
@@ -90,9 +90,6 @@ class SeurantaApp(FastAPI):
         self.add_api_route("/", endpoint=self.index)
         self.add_api_route("/name-form", methods=["get"], endpoint=self.name_form_page) # type: ignore
         self.add_api_route("/name-form", methods=["post"], endpoint=self.handle_name_form, response_model=TrackedEntityPublicWithDevices) # type: ignore
-        self.add_api_route("/trackeds", methods=["get"], endpoint=self.get_trackeds, response_model=list[TrackedEntityPublic]) # type: ignore
-        self.add_api_route("/tracked", methods=["post"], endpoint=self.create_tracked, response_model=TrackedEntityPublicWithDevices) # type: ignore
-        self.add_api_route("/tracked/{tracked_id}", methods=["get"], endpoint=self.get_tracked, response_model=TrackedEntityPublicWithDevices) # type: ignore
 
 
     async def index(self, req: Request) -> Response:
@@ -121,18 +118,6 @@ class SeurantaApp(FastAPI):
                 session.commit()
         response = await self.create_tracked(req, TrackedEntityCreate(name=name), session=session)
         return response
-
-
-    async def get_trackeds(self, session: Session = Depends(get_session)) -> list[TrackedEntity]:
-        trackeds: list[TrackedEntity] = list(session.exec(select(TrackedEntity)).all())
-        return trackeds
-
-
-    async def get_tracked(self, tracked_id: int, session: Session = Depends(get_session)):
-        tracked = session.get(TrackedEntity, tracked_id)
-        if not tracked:
-            raise HTTPException(status_code=404, detail="TrackedEntity not found")
-        return tracked
 
 
     async def create_tracked(self, req: Request, tracked: TrackedEntityCreate, session: Session = Depends(get_session)):
