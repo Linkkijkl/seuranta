@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Request, Response, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from contextlib import asynccontextmanager
 from sqlmodel import SQLModel, Session, select, col
 import logging
@@ -89,7 +90,7 @@ class SeurantaApp(FastAPI):
 
     async def init_routes(self):
         self.add_api_route("/", endpoint=self.index)
-        self.add_api_route("/name-form", methods=["get"], endpoint=self.name_form_page) # type: ignore
+        self.add_api_route("/name-form", methods=["get"], endpoint=self.name_form_page)
         self.add_api_route("/name-form", methods=["post"], endpoint=self.handle_name_form, response_model=TrackedEntityPublicWithDevices) # type: ignore
 
 
@@ -118,11 +119,12 @@ class SeurantaApp(FastAPI):
             if device := get_db_device(lease, session):
                 self.logger.info(f"Request is associated with an existing device in the database, {device.mac}")
                 tracked = session.get(TrackedEntity, device.trackedentity_id)
+                assert tracked
                 tracked.name = name
                 session.add(tracked)
                 session.commit()
-        response = await self.create_tracked(req, TrackedEntityCreate(name=name), session=session)
-        return response
+        await self.create_tracked(req, TrackedEntityCreate(name=name), session=session)
+        return RedirectResponse("/", status_code=302)
 
 
     async def create_tracked(self, req: Request, tracked: TrackedEntityCreate, session: Session = Depends(get_session)):
