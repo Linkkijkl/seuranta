@@ -53,7 +53,19 @@ table {
     --sec-bg-color: rgb(195, 195, 195);
 }
 
+@font-face {
+    font-family: "Exo2";
+    font-stretch: normal;
+    font-style: normal;
+    font-weight: 400;
+    src: url(Exo2-VariableFont_wght.ttf);
+}
+
 @media all {
+    html {
+        font-family: 'Exo2';
+    }
+
     body {
         display: flex;
         flex-direction: column;
