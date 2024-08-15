@@ -95,6 +95,11 @@ class TestNameSanitisation(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, "alex")
 
 
+    async def test_cut_long_name(self):
+        result = await SeurantaApp.sanitise_name("XXXXXEEEEEXXXXXEEEEEz")
+        self.assertEqual(result, "XXXXXEEEEEXXXXXEEEEE")
+
+
     async def test_valid_name(self):
         result = await SeurantaApp.sanitise_name("AlexIs45spoons")
         self.assertEqual(result, "AlexIs45spoons")
