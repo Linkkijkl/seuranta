@@ -4,6 +4,7 @@ from fastapi import Depends, FastAPI, Request, Response, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
+import jinja2.environment
 from contextlib import asynccontextmanager
 from sqlmodel import SQLModel, Session, select, col
 import logging
@@ -15,6 +16,11 @@ from .lease_monitor import Lease, LeaseMonitor
 
 
 _NAME_MAXLENGTH = 20
+_JINJA_ENV = jinja2.Environment(trim_blocks=True)
+_JINJA_TEMPLATES = Jinja2Templates(directory="templates", env=_JINJA_ENV)
+_EXPORT_DIR = Path("exports")
+_NAMES_TXT = Path("names.txt")
+_EXPORT_FILENAMES = {_NAMES_TXT}
 
 
 class SeurantaApp(FastAPI):
@@ -23,12 +29,7 @@ class SeurantaApp(FastAPI):
         self.__dict__.update(kwargs)
         self.engine = get_db_engine()
         super().__init__(lifespan=SeurantaApp.lifespan, **kwargs) # type: ignore
-        jinja_options: dict[str, Any] = {"trim_blocks": True}
-        self.templates = Jinja2Templates(directory="templates", **jinja_options)
         self.mount("/static", StaticFiles(directory="static"), name="static")
-        self.EXPORT_DIR = Path("exports")
-        self.NAMES_TXT = Path("names.txt")
-        self.EXPORT_FILENAMES = {self.NAMES_TXT}
 
 
     @asynccontextmanager
@@ -70,7 +71,7 @@ class SeurantaApp(FastAPI):
 
 
     async def export_names(self):
-        names_path = self.EXPORT_DIR/self.NAMES_TXT
+        names_path = _EXPORT_DIR/_NAMES_TXT
         self.logger.debug(f"Exporting names to {names_path}")
         async with aiofiles.open(names_path, "w") as export:
             await export.writelines("\n".join(await self.present_names))
@@ -78,11 +79,11 @@ class SeurantaApp(FastAPI):
 
 
     async def init_export_paths(self):
-        if not self.EXPORT_DIR.is_dir():
-            self.logger.info(f"Creating {self.EXPORT_DIR} directory")
-            self.EXPORT_DIR.mkdir()
-        for filename in self.EXPORT_FILENAMES:
-            if (filepath := self.EXPORT_DIR/filename).exists():
+        if not _EXPORT_DIR.is_dir():
+            self.logger.info(f"Creating {_EXPORT_DIR} directory")
+            _EXPORT_DIR.mkdir()
+        for filename in _EXPORT_FILENAMES:
+            if (filepath := _EXPORT_DIR/filename).exists():
                 continue
             self.logger.info(f"Creating {filepath}")
             filepath.touch()
@@ -99,11 +100,11 @@ class SeurantaApp(FastAPI):
         if req.client and (lease := await self._lease_monitor.get_lease_by_ip(req.client.host)):
             if device := get_db_device(lease, next(get_session())):
                 context["tracked"] = device.trackedentity
-        return self.templates.TemplateResponse(request=req, name="index.html", context=context)
+        return _JINJA_TEMPLATES.TemplateResponse(request=req, name="index.html", context=context)
 
 
     async def name_form_page(self, req: Request) -> Response:
-        return self.templates.TemplateResponse(request=req, name="name-form.html", context={"name_maxlength": _NAME_MAXLENGTH})
+        return _JINJA_TEMPLATES.TemplateResponse(request=req, name="name-form.html", context={"name_maxlength": _NAME_MAXLENGTH})
 
     @staticmethod
     async def sanitise_name(name: str) -> str:
