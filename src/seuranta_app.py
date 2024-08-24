@@ -109,6 +109,7 @@ class SeurantaApp(FastAPI):
     async def name_form_page(self, req: Request) -> Response:
         return _JINJA_TEMPLATES.TemplateResponse(request=req, name="name-form.html", context={"name_maxlength": _NAME_MAXLENGTH})
 
+
     @staticmethod
     async def sanitise_name(name: str) -> str:
         return re.sub(r'[^a-zA-Z0-9]', '', name)[:_NAME_MAXLENGTH]
