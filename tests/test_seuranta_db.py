@@ -2,6 +2,7 @@ import unittest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
+from src.db import *
 
 from src.seuranta_app import SeurantaApp, get_session
 
@@ -9,11 +10,12 @@ from src.seuranta_app import SeurantaApp, get_session
 class TestSeurantaDb(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.testing_options = { "disable_lease_monitor": True,
-                                "disable_export": True}
+        cls.testing_options = {"disable_export": True}
 
 
     def setUp(self) -> None:
+        self.leases = [Lease("testclient","test-hostname-1","1a:2b:3c:4d:5e:6f"),
+                        Lease("192.168.1.101","test-hostname-2","6f:5e:4d:3c:2b:1a")]
         engine = create_engine(
             "sqlite://",
             connect_args={"check_same_thread": False},
@@ -22,6 +24,7 @@ class TestSeurantaDb(unittest.TestCase):
         SQLModel.metadata.create_all(engine)
 
         with Session(engine) as session:
+            self.dbsession = session
             def get_session_override():
                 return session
             with TestClient(app := SeurantaApp(**self.testing_options)) as client: # type: ignore
@@ -30,18 +33,13 @@ class TestSeurantaDb(unittest.TestCase):
                 app.dependency_overrides[get_session] = get_session_override
 
 
-    @unittest.skip("no longer getting a direct response")
     def test_name_form(self):
         form = {"name": "Alex"}
-        response = self.client.post(
-            "/name-form", data=form
-        )
-        data = response.json()
+        self.client.post("/name-form", data=form)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(data["name"], "Alex")
-        self.assertIsNotNone(data["id"])
-        self.assertIsNotNone(data["created_date"])
+        result = self.dbsession.get_one(TrackedEntity, 1)
+
+        self.assertEqual(result.name, "Alex")
 
 
 if __name__ == "__main__":

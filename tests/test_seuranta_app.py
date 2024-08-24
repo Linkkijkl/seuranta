@@ -6,6 +6,7 @@ from src.seuranta_app import SeurantaApp, get_session
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 from src.lease_monitor import Lease
+from src.db import *
 
 
 class TestSeurantaApp(unittest.TestCase):
@@ -15,6 +16,8 @@ class TestSeurantaApp(unittest.TestCase):
 
 
     def setUp(self) -> None:
+        self.leases = [Lease("testclient","test-hostname-1","1a:2b:3c:4d:5e:6f"),
+                        Lease("192.168.1.101","test-hostname-2","6f:5e:4d:3c:2b:1a")]
         engine = create_engine(
             "sqlite://",
             connect_args={"check_same_thread": False},
@@ -23,6 +26,7 @@ class TestSeurantaApp(unittest.TestCase):
         SQLModel.metadata.create_all(engine)
 
         with Session(engine) as session:
+            self.dbsession = session
             def get_session_override():
                 return session
             with TestClient(app := SeurantaApp(**self.testing_options)) as client: # type: ignore
@@ -41,42 +45,38 @@ class TestSeurantaApp(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
 
 
-    @unittest.skip("no longer getting a direct response")
     def test_name_form_minor_sanitisation(self):
-        form = {"name": "45_spoons"}
-        response = self.client.post(
-            "/name-form",
-            data=form,
-        )
-        data = response.json()
+        with patch("src.seuranta_app.SeurantaApp.leases", new_callable=PropertyMock) as mock_leases:
+            mock_leases.return_value = self.leases
+            form = {"name": "45_spoons"}
+            self.client.post("/name-form",  data=form)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(data["name"], "45spoons")
-        self.assertIsNotNone(data["id"])
-        self.assertIsNotNone(data["created_date"])
+            result = self.dbsession.get_one(TrackedEntity, 1)
+
+            self.assertEqual(result.name, "45spoons")
 
 
-    @unittest.skip("no longer getting a direct response")
     def test_name_form_links_device(self):
         with patch("src.seuranta_app.SeurantaApp.leases", new_callable=PropertyMock) as mock_leases:
-            # client host appears as "testclient" when posting from a testclient,
-            # as far as is known, there might be no way to alter this behaviour,
-            # setting Host headers does not change it.
-            mock_leases.return_value = [Lease("testclient","test-hostname-1","1a:2b:3c:4d:5e:6f"),
-                                        Lease("192.168.1.101","test-hostname-2","6f:5e:4d:3c:2b:1a")]
+            mock_leases.return_value = self.leases
             form = {"name": "45spoons"}
-            response = self.client.post(
-                "/name-form",
-                data=form,
-            )
-            data = response.json()
+            self.client.post("/name-form",  data=form)
 
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(data["name"], "45spoons")
-            self.assertIsNotNone(data["id"])
-            self.assertIsNotNone(data["created_date"])
-            self.assertEqual(data["devices"][0]["mac"], "1a:2b:3c:4d:5e:6f")
-            self.assertEqual(data["devices"][0]["trackedentity_id"], data["id"])
+            entity = self.dbsession.get_one(TrackedEntity, 1)
+            device = self.dbsession.get_one(Device, 1)
+
+            self.assertEqual(device.trackedentity_id, entity.id)
+
+
+    def test_name_form_creates_device(self):
+        with patch("src.seuranta_app.SeurantaApp.leases", new_callable=PropertyMock) as mock_leases:
+            mock_leases.return_value = self.leases
+            form = {"name": "45spoons"}
+            self.client.post("/name-form",  data=form)
+
+            device = self.dbsession.get_one(Device, 1)
+
+            self.assertEqual(device.mac, "1a:2b:3c:4d:5e:6f")
 
 
 class TestNameSanitisation(unittest.IsolatedAsyncioTestCase):
