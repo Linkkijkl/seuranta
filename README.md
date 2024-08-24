@@ -6,7 +6,7 @@
 
 Vaatimukset:
 
-- python >= 3
+- python >= 3.12.5
 - verkkoyhteys tietotekniikkatila-Kattilan lähiverkkoon
 
 ```shell
