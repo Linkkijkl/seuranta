@@ -33,16 +33,22 @@ python3 ./main.py
 ├───tests
 │       __init__.py
 │       test_seuranta_app.py
+│       test_seuranta_db.py
+│       test_lease_monitor.py
 ├───static
 │   │   styles.css
+│   │   Exo2-VariableFont_wght.ttf
 │   └───images
 │           favicon.png
 │           favicon.svg
 ├───templates
 │       base.html
 │       index.html
+│       name-form.html
 └───src
         seuranta_app.py
+        lease_monitor.py
+        db.py
         __init__.py
 ```
 
