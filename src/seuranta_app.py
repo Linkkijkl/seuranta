@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI, Request, Response, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
-import jinja2.environment
+from jinja2 import Environment, FileSystemLoader
 from contextlib import asynccontextmanager
 from sqlmodel import SQLModel, Session, select, col
 import logging
@@ -16,8 +16,11 @@ from .lease_monitor import Lease, LeaseMonitor
 
 
 _NAME_MAXLENGTH = 20
-_JINJA_ENV = jinja2.Environment(trim_blocks=True)
-_JINJA_TEMPLATES = Jinja2Templates(directory="templates", env=_JINJA_ENV)
+_JINJA_ENV = Environment(
+    loader = FileSystemLoader("templates"),
+    trim_blocks = True,
+)
+_JINJA_TEMPLATES = Jinja2Templates(env=_JINJA_ENV)
 _EXPORT_DIR = Path("exports")
 _NAMES_TXT = Path("names.txt")
 _EXPORT_FILENAMES = {_NAMES_TXT}
