@@ -79,7 +79,9 @@ class SeurantaApp(FastAPI):
         url = "https://kattila-api.linkkijkl.fi/seuranta/users"
         headers = {"X-API-Key": self.KATTILA_API_KEY}
         json={"users": [{"username": username} for username in await self.present_names]}
-        httpx.post(url, headers=headers, json=json)
+        self.logger.info("Exporting names")
+        self.logger.debug(json)
+        httpx.put(url, headers=headers, json=json)
 
 
     async def init_routes(self):
