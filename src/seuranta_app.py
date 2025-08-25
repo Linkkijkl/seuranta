@@ -12,6 +12,7 @@ import logging
 import datetime
 import aiofiles
 import re
+import subprocess
 from .db import *
 from .lease_monitor import Lease, LeaseMonitor
 
@@ -22,7 +23,7 @@ _JINJA_ENV = Environment(
     trim_blocks = True,
 )
 _JINJA_TEMPLATES = Jinja2Templates(env=_JINJA_ENV)
-_EXPORT_DIR = Path("exports")
+_EXPORT_DIR = Path("tmp")
 _NAMES_TXT = Path("names.txt")
 _EXPORT_FILENAMES = {_NAMES_TXT}
 
@@ -35,6 +36,11 @@ class SeurantaApp(FastAPI):
         super().__init__(lifespan=SeurantaApp.lifespan, **kwargs) # type: ignore
         self.mount("/static", StaticFiles(directory="static"), name="static")
 
+    def send_names_to_server(self, namePath: str):
+        try:
+            print(subprocess.run(['scp', '-P', "5001", '-o', 'StrictHostKeyChecking no', namePath,'kahvi@linkkijkl.fi:/data/'], capture_output=True))
+        except subprocess.CalledProcessError as e:
+            print(f'An error occured: {str(e)}')
 
     @asynccontextmanager
     async def lifespan(self):
