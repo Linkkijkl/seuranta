@@ -1,6 +1,6 @@
 services:
-  restart: always
   seuranta:
+    restart: always
     build: .
     container_name: seuranta
     ports:
