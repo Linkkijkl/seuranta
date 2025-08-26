@@ -1,0 +1,21 @@
+services:
+  restart: always
+  seuranta:
+    build: .
+    container_name: seuranta
+    ports:
+      - "8000:8000"
+    develop:
+      watch:
+        - action: rebuild
+          path: .
+    secrets:
+      - apikey
+    volumes:
+      - type: bind
+        source: ./seuranta.db
+        target: /seuranta.db
+
+secrets:
+  apikey:
+    file: "apikey.txt"

@@ -7,6 +7,7 @@ from fastapi.responses import RedirectResponse
 from jinja2 import Environment, FileSystemLoader
 from contextlib import asynccontextmanager
 from sqlmodel import SQLModel, Session, select, col
+import httpx
 import logging
 import datetime
 import aiofiles
@@ -43,8 +44,9 @@ class SeurantaApp(FastAPI):
 
     @asynccontextmanager
     async def lifespan(self):
+        with open("apikey.txt", "r") as keyfile:
+            self.KATTILA_API_KEY = keyfile.read().strip()
         SQLModel.metadata.create_all(self.engine)
-        await self.init_export_paths()
         self._lease_monitor: LeaseMonitor = LeaseMonitor('http://192.168.1.1/moi', self.export_names)
         await self.init_routes()
         yield
@@ -80,23 +82,12 @@ class SeurantaApp(FastAPI):
 
 
     async def export_names(self):
-        names_path = _EXPORT_DIR/_NAMES_TXT
-        self.logger.debug(f"Exporting names to {names_path}")
-        async with aiofiles.open(names_path, "w") as export:
-            await export.writelines("\n".join(await self.present_names))
-            await export.flush()
-            self.send_names_to_server(names_path)
-
-
-    async def init_export_paths(self):
-        if not _EXPORT_DIR.is_dir():
-            self.logger.info(f"Creating {_EXPORT_DIR} directory")
-            _EXPORT_DIR.mkdir()
-        for filename in _EXPORT_FILENAMES:
-            if (filepath := _EXPORT_DIR/filename).exists():
-                continue
-            self.logger.info(f"Creating {filepath}")
-            filepath.touch()
+        url = "https://kattila-api.linkkijkl.fi/seuranta/users"
+        headers = {"X-API-Key": self.KATTILA_API_KEY}
+        json={"users": [{"username": username} for username in await self.present_names]}
+        self.logger.info("Exporting names")
+        self.logger.debug(json)
+        httpx.put(url, headers=headers, json=json)
 
 
     async def init_routes(self):
