@@ -1,4 +1,5 @@
 services:
+  restart: always
   seuranta:
     build: .
     container_name: seuranta
