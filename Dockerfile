@@ -1,9 +1,12 @@
 FROM python:3.13
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-COPY ./ /
+WORKDIR /code
 
-RUN uv pip install --system --no-cache-dir --upgrade -r requirements.txt
+COPY ./requirements.txt /code/requirements.txt
 
-# See <https://fastapi.tiangolo.com/deployment/docker/#behind-a-tls-termination-proxy>
-CMD ["python", "main.py"]
+RUN uv pip install --system --no-cache-dir --upgrade -r /code/requirements.txt
+
+COPY ./src /code/src
+
+CMD ["fastapi", "run", "src/main.py", "--proxy-headers", "--port", "8000", "--host", "0.0.0.0"]
