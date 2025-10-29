@@ -1,9 +1,15 @@
 fastapi[standard]
-uvicorn
+pytest
+pytest-asyncio
+pytest-trio
+anyio
+aiosqlite
 jinja2
 apscheduler
 aiohttp
 aiofiles
-sqlmodel
 pyyaml
 httpx
+SQLAlchemy
+sqlalchemy-utils
+pydantic
