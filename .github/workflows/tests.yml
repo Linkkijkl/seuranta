@@ -22,5 +22,5 @@ jobs:
                 python -m pip install --upgrade uv
                 uv pip install --system --upgrade pip setuptools wheel
                 uv pip install --system -r requirements.txt
-            - name: Test with unittest
-              run: python -m unittest
+            - name: Test with pytest
+              run: python -m pytest
