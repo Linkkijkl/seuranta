@@ -8,7 +8,11 @@ services:
     develop:
       watch:
         - action: rebuild
-          path: .
+          path: src
+        - action: rebuild
+          path: requirements.txt
+        - action: rebuild
+          path: templates
     secrets:
       - apikey
     volumes:
