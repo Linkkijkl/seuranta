@@ -76,11 +76,16 @@ table {
         background-color: var(--main-bg-color);
     }
 
+    h1 {
+        font-size: 2em;
+    }
+
     div.content {
         margin: 20px;
     }
 
     footer {
+        background-color: var(--sec-bg-color);
         overflow: hidden;
         margin-top: auto;
         display: flex;
