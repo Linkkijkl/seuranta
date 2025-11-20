@@ -13,3 +13,7 @@ httpx
 SQLAlchemy
 sqlalchemy-utils
 pydantic
+alembic
+asyncpg
+psycopg2-binary
+get-docker-secret

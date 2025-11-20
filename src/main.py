@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import (
     FastAPI,
@@ -38,6 +38,16 @@ async def get_session():
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
+async def associate_tracked_entity_data(req: Request, session: SessionDep):
+    req.state.lease = await lease_monitor.get_lease_by_ip(req.client.host)
+    req.state.device = None
+    req.state.tracked_entity = None
+
+    if req.state.lease:
+        req.state.device = await crud.get_device_by_mac_addr(session, req.state.lease.mac_addr)
+        if req.state.device:
+            req.state.tracked_entity = await session.get_one(models.TrackedEntity, req.state.device.tracked_entity_id)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as connection:
@@ -47,39 +57,49 @@ async def lifespan(app: FastAPI):
     yield
     lease_monitor_scheduler.shutdown()
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, dependencies=[Depends(associate_tracked_entity_data)])
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-async def associate_tracked_entity(req: Request, session: AsyncSession, lm: LeaseMonitor) -> None | models.TrackedEntity:
-    if (lease := await lm.get_lease_by_ip(req.client.host)) \
-    and (device := await crud.get_device_by_mac_addr(session, lease.mac_addr)):
-        return await session.get_one(models.TrackedEntity, device.tracked_entity_id)
 
 @app.get("/")
 async def root(req: Request, session: SessionDep) -> Response:
     context: dict[str, Any] = {}
     context["present_names"] = await crud.get_tracked_entity_names_by_mac_addrs(session, lease_monitor.mac_addrs)
-    if (tracked_entity := await associate_tracked_entity(req, session, lease_monitor)):
-        context["tracked_entity"] = tracked_entity
-        await tracked_entity.awaitable_attrs.devices
+    if te := req.state.tracked_entity:
+        context["tracked_entity"] = te
+        await te.awaitable_attrs.devices
+        return JINJA_TEMPLATES.TemplateResponse(request=req, name="informative.html", context=context)
     return JINJA_TEMPLATES.TemplateResponse(request=req, name="index.html", context=context)
 
 @app.get("/name-form")
-async def serve_name_form(req: Request):
-    return JINJA_TEMPLATES.TemplateResponse(request=req, name="name-form.html", context={"name_maxlength": NAME_MAXLENGTH})
+async def serve_name_form(req: Request, session: SessionDep):
+    context: dict[str, Any] = {"name_maxlength": NAME_MAXLENGTH}
+    context["tracked_entity"] = req.state.tracked_entity
+    return JINJA_TEMPLATES.TemplateResponse(request=req, name="name-form.html", context=context)
 
 @app.post("/name-form")
 async def handle_name_form(req: Request, username: Annotated[str, Form()], session: SessionDep):
-    if not (associated_lease := await lease_monitor.get_lease_by_ip(req.client.host)):
+    if not req.state.lease:
         return Response(content="Could not find associated DHCP lease", status_code=500)
-    
-    if associated_device := await crud.get_device_by_mac_addr(session, associated_lease.mac_addr):
-        associated_tracked_entity = await session.get_one(models.TrackedEntity, associated_device.tracked_entity_id)
-        await crud.update_tracked_entity_name(session, associated_tracked_entity, username)
+
+    if te := req.state.tracked_entity:
+        await crud.update_tracked_entity_name(session, te, username)
         return RedirectResponse("/", status_code=302)
-    
+
     new_tracked_entity = schemas.TrackedEntityCreate(name=username)
-    new_device = schemas.DeviceCreate(mac_addr=associated_lease.mac_addr)
+    new_device = schemas.DeviceCreate(mac_addr=req.state.lease.mac_addr)
     await crud.create_tracked_entity_with_device(session, new_tracked_entity, new_device)
     return RedirectResponse("/", status_code=302)
+
+@app.post("/memberships")
+async def add_membership(req: Request, membership: schemas.MembershipCreate, session: SessionDep):
+    if te := req.state.tracked_entity \
+    and te.tracked_entity_id == membership.tracked_entity_id:
+        await crud.add_membership(session, membership)
+
+@app.delete("/memberships")
+async def delete_membership(req: Request, membership: schemas.MembershipDelete, session: SessionDep):
+    if te := req.state.tracked_entity \
+    and te.tracked_entity_id == membership.tracked_entity_id:
+        await crud.delete_membership(session, membership)

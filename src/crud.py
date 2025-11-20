@@ -38,3 +38,20 @@ async def get_tracked_entity_names_by_mac_addrs(db: AsyncSession, mac_addrs: lis
     db_result = await db.execute(select(models.TrackedEntity.name).where(models.TrackedEntity.devices.any(models.Device.mac_addr.in_(mac_addrs))))
     names = db_result.scalars()
     return names
+
+async def add_membership(db: AsyncSession, membership: schemas.MembershipCreate):
+    db_membership = models.Membership(
+        tracked_entity_id=membership.tracked_entity_id,
+        group_id=membership.tracked_entity_id,
+        joined_date=datetime.date.today()
+    )
+    db.add(db_membership)
+    await db.commit()
+    await db.refresh(db_membership)
+    return db_membership
+
+async def delete_membership(db: AsyncSession, membership: schemas.MembershipDelete):
+    ident = {"tracked_entity_id": membership.tracked_entity_id, "group_id": membership.group_id}
+    db_membership = db.get_one(models.Membership, ident)
+    db.delete(db_membership)
+    await db.commit()

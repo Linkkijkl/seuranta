@@ -8,6 +8,22 @@ from sqlalchemy import select
 
 
 @pytest.mark.asyncio
+async def test_root(async_client):
+    response = await async_client.get("/")
+    assert response.status_code == 200
+
+@pytest.mark.asyncio
+async def test_static_styles_exist(async_client):
+    response = await async_client.get("/static/styles.css")
+    assert response.status_code == 200
+
+@pytest.mark.asyncio
+async def test_name_form(async_client):
+    form_data = {"username": "Alex"}
+    response = await async_client.post("/name-form", data=form_data)
+    assert response.status_code == 302
+
+@pytest.mark.asyncio
 async def test_name_form_minor_sanitisation(async_client, async_session):
     form = {"username": "45spoons."}
     response = await async_client.post("/name-form",  data=form)
