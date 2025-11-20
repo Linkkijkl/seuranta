@@ -15,8 +15,8 @@
 
 {% block content %}
 <form action="/name-form" method="post">
-    <label for="username">Valitse nimimerkki:</label>
+    <label for="username">{% if tracked_entity %}Vaihda{% else %}Valitse{% endif %} nimimerkki:</label>
     <input required type="text" id="username" name="username" placeholder="esim. kattilakissa" maxlength="{{ name_maxlength }}" pattern="[a-zA-Z0-9]{2,{{ name_maxlength }}}"/>
-    <button type="submit" id="submit-name-form" name="submit-name-form">Valitse nimimerkki</button>
+    <button type="submit" id="submit-name-form" name="submit-name-form">{% if tracked_entity %}Vaihda{% else %}Valitse{% endif %} nimimerkki</button>
 </form>
 {% endblock content %}

@@ -1,27 +1,18 @@
 {% extends "base.html" %}
 
 {% block content %}
-{% if tracked_entity %}
-    <h1>Hei {{ tracked_entity.name }}!</h1>
-    <p>{{ tracked_entity.created_datetime }}</p>
-    <p>{{ tracked_entity.id }}</p>
+<h1>Hei Sinä, joka et ole vielä liittynyt!</h1>
+<a href="{{ url_for('serve_name_form') }}" class="button">Liity Seurantaan</a>
+{% if present_names %}
+<div class="box-container">
+    <h2>Paikalla:</h2>
     <ul>
-    {% for device in tracked_entity.devices %}
-        <li>{{ device.mac_addr }}</li>
+    {% for name in present_names %}
+        <li>{{ name }}</li>
+    {% else %}
+        <li>ei ketään :'c</li>
     {% endfor %}
     </ul>
-    <p>Voit vaihtaa nimesi samalla lomakkeella, millä loit seurantaan nimesi: <a href="{{ url_for('serve_name_form') }}">{{ url_for('serve_name_form') }}</a></p>
-{% else %}
-    <h1>Hei!</h1>
-    <p>Liitä päätelaitteesi seurantaan seuraavalla lomakkeella: <a href="{{ url_for('serve_name_form') }}">{{ url_for('serve_name_form') }}</a></p>
-    {% if present_names %}
-        <ul>
-        {% for name in present_names %}
-            <li>{{ name }}</li>
-        {% else %}
-            <li>ei ketään :'c</li>
-        {% endfor %}
-        </ul>
-    {% endif %}
+</div>
 {% endif %}
 {% endblock content %}
