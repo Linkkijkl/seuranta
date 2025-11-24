@@ -17,6 +17,7 @@ class DeviceUpdate(DeviceBase):
 
 class DeviceCreate(DeviceBase):
     mac_addr: str
+    hostname: str
 
 class Device(DeviceBase):
     id: int

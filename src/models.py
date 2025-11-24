@@ -1,13 +1,11 @@
 from typing import List, Set, Optional
-import enum
 import src.utils as utils
 from sqlalchemy import ForeignKey
 from sqlalchemy import MetaData
 from sqlalchemy import String
-from sqlalchemy import Enum
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase, MappedAsDataclass
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import relationship
 import datetime
@@ -30,6 +28,9 @@ class Membership(Base):
 class TrackedEntity(Base):
     __tablename__ = "tracked_entity"
 
+    def __repr__(self):
+        return f"TrackedEntity(id={self.id}, name={self.name}, created_datetime={self.created_datetime}, devices={self.devices})"
+
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(utils.NAME_MAXLENGTH))
     created_datetime: Mapped[datetime.datetime]
@@ -42,9 +43,13 @@ class TrackedEntity(Base):
 class Device(Base):
     __tablename__ = "device"
 
+    def __repr__(self):
+        return f"Device(id={self.id}, mac_addr={self.mac_addr}, name={self.name}, hostname={self.hostname}, tracked_entity_id={self.tracked_entity_id})"
+
     id: Mapped[int] = mapped_column(primary_key=True)
     mac_addr: Mapped[str] = mapped_column(String(17))
     name: Mapped[Optional[str]] = mapped_column(String(20))
+    hostname: Mapped[Optional[str]] = mapped_column(String(255))
     tracked_entity_id: Mapped[int] = mapped_column(ForeignKey("tracked_entity.id"))
     tracked_entity: Mapped["TrackedEntity"] = relationship(back_populates="devices")
 

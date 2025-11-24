@@ -20,7 +20,7 @@ import src.models as models
 import src.schemas as schemas
 import src.crud as crud
 from src.database import SessionLocal, engine
-from src.lease_monitor import Lease, LeaseMonitor
+from src.lease_monitor import LeaseMonitor
 
 
 lease_monitor = LeaseMonitor()
@@ -83,12 +83,19 @@ async def handle_name_form(req: Request, username: Annotated[str, Form()], sessi
     if not req.state.lease:
         return Response(content="Could not find associated DHCP lease", status_code=500)
 
+    # Device is associated with an existing tracked entity, so 
     if te := req.state.tracked_entity:
         await crud.update_tracked_entity_name(session, te, username)
         return RedirectResponse("/", status_code=302)
-
+    
+    new_device = schemas.DeviceCreate(mac_addr=req.state.lease.mac_addr, hostname=req.state.lease.hostname)
+    
+    if te := crud.get_tracked_entity_by_name(username):
+        await crud.add_device_to_tracked_entity(session, te, new_device)
+        return RedirectResponse("/", status_code=302)
+    
     new_tracked_entity = schemas.TrackedEntityCreate(name=username)
-    new_device = schemas.DeviceCreate(mac_addr=req.state.lease.mac_addr)
+
     await crud.create_tracked_entity_with_device(session, new_tracked_entity, new_device)
     return RedirectResponse("/", status_code=302)
 
