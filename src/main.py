@@ -53,7 +53,6 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as connection:
         await connection.run_sync(models.Base.metadata.create_all)
     lease_monitor_scheduler.start()
-    await lease_monitor.update_leases()
     yield
     lease_monitor_scheduler.shutdown()
 
@@ -90,7 +89,7 @@ async def handle_name_form(req: Request, username: Annotated[str, Form()], sessi
     
     new_device = schemas.DeviceCreate(mac_addr=req.state.lease.mac_addr, hostname=req.state.lease.hostname)
     
-    if te := crud.get_tracked_entity_by_name(username):
+    if te := await crud.get_tracked_entity_by_name(session, username):
         await crud.add_device_to_tracked_entity(session, te, new_device)
         return RedirectResponse("/", status_code=302)
     

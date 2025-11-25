@@ -45,6 +45,11 @@ async def add_device_to_tracked_entity(db: AsyncSession, tracked_entity: models.
     await db.refresh(tracked_entity)
     return tracked_entity
 
+async def get_tracked_entities_by_mac_addrs(db: AsyncSession, mac_addrs: list[str]):
+    db_result = await db.execute(select(models.TrackedEntity).join(models.Device).filter(models.Device.mac_addr.in_(mac_addrs)))
+    tracked_entities = db_result.scalars().all()
+    return tracked_entities
+
 async def get_tracked_entity_names_by_mac_addrs(db: AsyncSession, mac_addrs: list[str]) -> list[str]:
     db_result = await db.execute(select(models.TrackedEntity.name).where(models.TrackedEntity.devices.any(models.Device.mac_addr.in_(mac_addrs))))
     names = db_result.scalars()

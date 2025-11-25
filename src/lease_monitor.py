@@ -1,5 +1,7 @@
 import aiohttp
 import src.utils as utils
+from src.database import SessionLocal
+import src.crud as crud
 
 class Lease():
     def __init__(self, ipv4_addr: str, hostname: str, mac_addr: str):
@@ -16,6 +18,7 @@ class LeaseMonitor():
     _leases: list[Lease] = []
     _req_timeout = aiohttp.ClientTimeout(total=10, connect=5)
     _endpoint = 'http://192.168.1.1/moi'
+    _sessionmaker = SessionLocal
 
 
     @staticmethod
@@ -44,7 +47,9 @@ class LeaseMonitor():
 
     async def update_leases(self) -> int:
         status = await self.fetch_leases()
-        await utils.export_names("balls")
+        async with SessionLocal() as session:
+            names = await crud.get_tracked_entity_names_by_mac_addrs(session, self.mac_addrs)
+        await utils.export_names(names)
         return status
 
 
@@ -52,7 +57,6 @@ class LeaseMonitor():
         for lease in self.leases:
             if lease.ipv4_addr == ipv4_addr:
                 return lease
-        return None
 
 
     @property
