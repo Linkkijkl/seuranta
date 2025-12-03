@@ -13,7 +13,7 @@ JINJA_ENV = Environment(
 )
 JINJA_TEMPLATES = Jinja2Templates(env=JINJA_ENV)
 
-KATTILA_API_URL = os.getenv("KATTILA_API_URL")
+KATTILA_API_URL = os.getenv("KATTILA_API_URL", None)
 _KATTILA_API_KEY = get_docker_secret("apikey")
 
 def sanitise_name(name: str, max_length: int = NAME_MAXLENGTH) -> str:
