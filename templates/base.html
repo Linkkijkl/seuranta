@@ -18,7 +18,7 @@
         {% block scripts %}{% endblock scripts %}
     </head>
     <body>
-        <header><a href="/"><img src="/static/images/favicon.svg"></a><h1 class="display">Seuranta</h1></header>
+        {% include 'partials/_header.html' %}
         <div class="content">
         <!--[if lt IE 7]>
                 <p class="browsehappy"
@@ -28,11 +28,6 @@
         <![endif]-->
             {% block content %} {% endblock content %}
         </div>
-        <footer class="footer">
-            <div class="footer-items">
-                <a href="https://github.com/linkkijkl/seuranta/" target="_blank">repo</a>
-                <a href="https://kattila.linkkijkl.fi/" target="_blank">kahvikamera</a>
-            </div>
-        </footer>
+        {% include 'partials/_footer.html' %}
     </body>
 </html>
