@@ -11,7 +11,7 @@ async def create_tracked_entity_with_device(db: AsyncSession, tracked_entity: sc
     db_tracked_entity = models.TrackedEntity(
         name=sanitise_name(tracked_entity.name),
         devices=[models.Device(mac_addr=device.mac_addr, hostname=device.hostname)],
-        created_datetime=datetime.datetime.now()
+        created_datetime=datetime.datetime.now().replace(microsecond=0)
     )
     db.add(db_tracked_entity)
     await db.commit()

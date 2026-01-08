@@ -50,7 +50,9 @@ table {
 :root {
     --main-fg-color: rgb(31, 41, 35);
     --main-bg-color: rgb(227, 227, 227);
-    --sec-bg-color: rgb(195, 195, 195);
+    --header-bg-color: rgb(190, 190, 190);
+    --sec-bg-color: rgb(210, 210, 210);
+    --sec-fg-color: rgb(60, 60, 60);
 }
 
 @font-face {
@@ -93,7 +95,7 @@ table {
     }
 
     header {
-        background-color: var(--sec-bg-color);
+        background-color: var(--header-bg-color);
         overflow: hidden;
         display: flex;
         flex-direction: row;
@@ -181,6 +183,14 @@ table {
         text-decoration-line: none;
         box-shadow: 2px 2px black;
         margin: 1em;
+    }
+
+    dl.device {
+        padding: 0.3em;
+        border: 2px solid;
+        border-color: var(--sec-fg-color);
+        border-radius: 0.3em;
+        background-color: var(--sec-bg-color);
     }
 }
 

@@ -2,14 +2,13 @@
 
 {% block content %}
 <h1>Hei {{ tracked_entity.name }}!</h1>
-<p>Olet liittynyt {{ tracked_entity.created_datetime }}</p>
-<div class="device-container">
-    <h2>Yhdistetyt laitteesi:</h2>
-    <ul>
-    {% for device in tracked_entity.devices %}
-        <li>{{ device.mac_addr }}</li>
-    {% endfor %}
-    </ul>
-</div>
+<p>Olet liittynyt <time datetime="{{ tracked_entity.created_datetime.replace(microsecond=0).isoformat() }}">{{ tracked_entity.created_datetime.replace(microsecond=0).strftime("%d ") }}</time></p>
+<h2>Yhdistetyt laitteesi:</h2>
+{% for device in tracked_entity.devices %}
+<dl class="device">
+    <dt>Isäntänimi</dt><dd>{{ device.hostname }}</dd>
+    <dt>MAC-osoite</dt><dd>{{ device.mac_addr }}</dd>
+</dl>
+{% endfor %}
 <a href="{{ url_for('serve_name_form') }}" class="button">Nimenvaihtoon</a>
 {% endblock content %}

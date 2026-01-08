@@ -67,6 +67,7 @@ async def root(req: Request, session: SessionDep) -> Response:
     context["present_names"] = await crud.get_tracked_entity_names_by_mac_addrs(session, lease_monitor.mac_addrs)
     if te := req.state.tracked_entity:
         context["tracked_entity"] = te
+        context["joined_datetime_isoformat"] = te.created_datetime.isoformat()
         await te.awaitable_attrs.devices
         return JINJA_TEMPLATES.TemplateResponse(request=req, name="informative.html", context=context)
     return JINJA_TEMPLATES.TemplateResponse(request=req, name="index.html", context=context)
