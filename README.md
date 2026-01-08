@@ -1,56 +1,6 @@
 # Opt-in kävijäseuranta
 
-![tests](https://github.com/45spoons/seuranta/actions/workflows/tests.yml/badge.svg)
-
-## Alustaminen
-
-Vaatimukset:
-
-- python >= 3.12.5
-- verkkoyhteys tietotekniikkatila-Kattilan lähiverkkoon
-
-```shell
-git clone git@github.com:45spoons/seuranta.git
-cd seuranta/
-python3 -m venv .venv
-source ./.venv/bin/activate
-pip3 install -r requirements.txt
-python3 ./main.py
-```
-
-## Projektin rakenne
-
-```text
-.
-│   .gitignore
-│   LICENSE
-│   main.py
-│   README.md
-│   requirements.txt
-├───.github
-│   └───workflows
-│           tests.yml
-├───tests
-│       __init__.py
-│       test_seuranta_app.py
-│       test_seuranta_db.py
-│       test_lease_monitor.py
-├───static
-│   │   styles.css
-│   │   Exo2-VariableFont_wght.ttf
-│   └───images
-│           favicon.png
-│           favicon.svg
-├───templates
-│       base.html
-│       index.html
-│       name-form.html
-└───src
-        seuranta_app.py
-        lease_monitor.py
-        db.py
-        __init__.py
-```
+![tests](https://github.com/Linkkijkl/seuranta/actions/workflows/tests.yml/badge.svg)
 
 ## Kehitys
 
