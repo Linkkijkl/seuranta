@@ -1,0 +1,5 @@
+.dockerignore
+.git
+.github
+Dockerfile
+run-tests.Dockerfile

@@ -1,9 +1,7 @@
-from typing import Any, Optional, Callable, Coroutine
-import logging
 import aiohttp
-from apscheduler.schedulers.asyncio import AsyncIOScheduler # type: ignore
-from apscheduler.triggers.cron import CronTrigger # type: ignore
-
+import src.utils as utils
+from src.database import SessionLocal
+import src.crud as crud
 
 class Lease():
     def __init__(self, ipv4_addr: str, hostname: str, mac_addr: str):
@@ -16,23 +14,11 @@ class Lease():
         return self.__dict__ == other.__dict__
 
 
-class LeaseMonitor(AsyncIOScheduler):
+class LeaseMonitor():
     _leases: list[Lease] = []
     _req_timeout = aiohttp.ClientTimeout(total=10, connect=5)
-    def __init__(self, endpoint: str, \
-            on_update: Optional[Callable[..., Coroutine[Any, Any, Any]]], \
-            **kwargs: dict[str, Any] \
-        ) -> None:
-        super().__init__() # type: ignore
-        self.__dict__.update(kwargs)
-        self.on_update = on_update
-        self._logger = logging.getLogger(__name__)
-        self._logger.setLevel(logging.WARNING)
-        logging.getLogger('apscheduler').setLevel(self._logger.level)
-        self._endpoint = endpoint
-        self.add_job(self.update_leases, CronTrigger(second="*/15")) # type: ignore
-        self.start()
-        return
+    _endpoint = 'http://192.168.1.1/moi'
+    _sessionmaker = SessionLocal
 
 
     @staticmethod
@@ -53,7 +39,7 @@ class LeaseMonitor(AsyncIOScheduler):
         return response.status
 
 
-    async def fetch_leases(self):
+    async def fetch_leases(self) -> int:
         async with aiohttp.ClientSession(timeout=self._req_timeout) as session:
             async with session.get(self._endpoint) as response:
                 return await self.handle_lease_response(response)
@@ -61,18 +47,22 @@ class LeaseMonitor(AsyncIOScheduler):
 
     async def update_leases(self) -> int:
         status = await self.fetch_leases()
-        if self.on_update:
-            await self.on_update()
+        async with SessionLocal() as session:
+            names = await crud.get_tracked_entity_names_by_mac_addrs(session, self.mac_addrs)
+        await utils.export_names(names)
         return status
 
 
-    async def get_lease_by_ip(self, ipv4_addr: str) -> Lease | None:
+    async def get_lease_by_ip(self, ipv4_addr: str | None) -> Lease | None:
         for lease in self.leases:
             if lease.ipv4_addr == ipv4_addr:
                 return lease
-        return None
 
 
     @property
     def leases(self) -> list[Lease]:
         return self._leases.copy()
+
+    @property
+    def mac_addrs(self) -> list[str]:
+        return [lease.mac_addr for lease in self.leases]

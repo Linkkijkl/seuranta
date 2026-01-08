@@ -1,19 +1,18 @@
 {% extends "base.html" %}
 
 {% block content %}
-{% if tracked %}
-    <h1>Hei {{ tracked.name }},</h1>
-    <p>Voit vaihtaa nimesi samalla lomakkeella, millä loit seurantaan nimesi: <a href="{{ url_for('name_form_page') }}">{{ url_for('name_form_page') }}</a></p>
-{% else %}
-<p>Liitä päätelaitteesi seurantaan seuraavalla lomakkeella: <a href="{{ url_for('name_form_page') }}">{{ url_for('name_form_page') }}</a></p>
-    {% if present_names %}
-        <ul>
-        {% for name in present_names %}
-            <li>{{ name }}</li>
-        {% else %}
-            <li>ei ketään :'c</li>
-        {% endfor %}
-        </ul>
-    {% endif %}
+<h1>Hei Sinä, joka et ole vielä liittynyt!</h1>
+<a href="{{ url_for('serve_name_form') }}" class="button">Liity Seurantaan</a>
+{% if present_names %}
+<div class="box-container">
+    <h2>Paikalla:</h2>
+    <ul>
+    {% for name in present_names %}
+        <li>{{ name }}</li>
+    {% else %}
+        <li>ei ketään :'c</li>
+    {% endfor %}
+    </ul>
+</div>
 {% endif %}
 {% endblock content %}

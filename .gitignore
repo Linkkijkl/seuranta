@@ -1,5 +1,9 @@
 __pycache__
 .venv
+venv
 
-seuranta.db
-exports
+apikey.txt
+postgres-passwd.txt
+.env
+
+*.db
